@@ -78,6 +78,11 @@
   .execution-steps { margin-top: 8px; }
   .execution-steps .estep { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px; }
   .execution-steps .estep .icon { width: 16px; text-align: center; }
+
+  .event { padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; display: flex; gap: 8px; }
+  .event:last-child { border-bottom: none; }
+  .event .ts { color: var(--text2); font-family: monospace; white-space: nowrap; margin-left: auto; }
+  .event .src { color: var(--accent); }
 </style>
 </head>
 <body>
@@ -85,6 +90,7 @@
   <div class="activity-bar">
     <button class="a-btn active" onclick="resetWorkbench()" title="Cognitive Workbench">💡</button>
     <button class="a-btn" onclick="switchView('runtime')" title="Runtime">⚡</button>
+    <button class="a-btn" onclick="switchView('knowledge')" title="Knowledge">🧠</button>
     <button class="a-btn" onclick="switchView('knowledge')" title="Knowledge">🧠</button>
     <button class="a-btn" onclick="switchView('timeline')" title="Timeline">📋</button>
     <div class="bottom"><button class="a-btn" onclick="showShortcuts()" title="Shortcuts">?</button></div>
@@ -230,9 +236,109 @@ function resetWorkbench() {
 
 function switchView(view) {
   document.querySelectorAll('.a-btn').forEach(b => b.classList.remove('active'));
-  const idx = {runtime:1, knowledge:2, timeline:3}[view] || 0;
-  document.querySelectorAll('.a-btn')[idx].classList.add('active');
+  const idx = {runtime:1, knowledge:2, timeline:3, knowledge:4}[view] || 0;
+  const btns = document.querySelectorAll('.a-btn');
+  if (view === 'runtime') btns[1].classList.add('active');
+  else if (view === 'knowledge') btns[2].classList.add('active');
+  else if (view === 'timeline') btns[3].classList.add('active');
+  else btns[0].classList.add('active');
   document.getElementById('status-text').textContent = `View: ${view}`;
+
+  const conv = document.getElementById('conversation');
+  if (view === 'knowledge') {
+    conv.innerHTML = `<div class="message system"><div class="header"><span>Knowledge Explorer</span><span class="status complete">Loaded</span></div><div class="detail">Loading knowledge graph...</div></div>`;
+    loadKnowledgeExplorer();
+  } else if (view === 'runtime') {
+    conv.innerHTML = `<div class="message system"><div class="header"><span>Runtime Explorer</span><span class="status complete">Loaded</span></div><div class="detail">Loading runtime state...</div></div>`;
+    loadRuntimeExplorer();
+  } else if (view === 'timeline') {
+    conv.innerHTML = `<div class="message system"><div class="header"><span>Timeline</span><span class="status complete">Loaded</span></div><div class="detail">Loading event history...</div></div>`;
+    loadTimelineView();
+  }
+}
+
+async function loadKnowledgeExplorer() {
+  const conv = document.getElementById('conversation');
+  try {
+    const [graph, patterns, cases, k] = await Promise.all([
+      fetchJSON('/api/shell/knowledge/graph'),
+      fetchJSON('/api/shell/knowledge/patterns'),
+      fetchJSON('/api/shell/knowledge/cases'),
+      fetchJSON('/api/shell/knowledge'),
+    ]);
+
+    let html = `<div class="message system"><div class="header"><span>Knowledge Base</span><span class="status complete">${k.patterns || 0} patterns · ${k.cases || 0} cases · ${k.reuse || 0}% reuse</span></div></div>`;
+
+    // Graph as entity cards
+    html += `<div class="message system"><div class="header"><span>Digital Twin</span></div><div class="detail"><div class="result-grid">`;
+    (graph.nodes || []).forEach(n => {
+      const cls = n.state === 'ACTIVE' || n.state === 'RUNNING' ? 'green' : 'blue';
+      html += `<div class="result-card"><div class="rlabel">${n.type}</div><div class="rvalue ${cls}">${n.label}</div><div style="font-size:10px;color:var(--text2);margin-top:2px">${n.state}</div></div>`;
+    });
+    html += `</div></div></div>`;
+
+    // Relationships
+    html += `<div class="message system"><div class="header"><span>Knowledge Graph</span></div><div class="detail" style="font-family:monospace;font-size:12px;line-height:1.6">`;
+    (graph.relationships || []).forEach(r => {
+      html += `<div style="padding:2px 0">📦 ${r.source} <span style="color:var(--accent)">─${r.type}→</span> ${r.target}</div>`;
+    });
+    html += `</div></div>`;
+
+    // Patterns
+    if (patterns && patterns.length > 0) {
+      html += `<div class="message system"><div class="header"><span>Patterns (${patterns.length})</span></div><div class="detail">`;
+      patterns.slice(-5).reverse().forEach(p => {
+        html += `<div class="event"><span class="src">[${p.type}]</span><span>${p.title}</span><span class="ts">confidence: ${(p.confidence || 0).toFixed(2)}</span></div>`;
+      });
+      html += `</div></div>`;
+    }
+
+    // Cases
+    if (cases && cases.length > 0) {
+      html += `<div class="message system"><div class="header"><span>Cases (${cases.length})</span></div><div class="detail">`;
+      cases.slice(-5).reverse().forEach(c => {
+        html += `<div class="event"><span class="src">${c.action}</span><span>→ ${c.outcome}</span><span class="ts">score: ${(c.score || 0).toFixed(2)}</span></div>`;
+      });
+      html += `</div></div>`;
+    }
+
+    conv.innerHTML = html;
+    scrollToBottom();
+  } catch(e) {
+    conv.innerHTML = `<div class="message system"><div class="header"><span>Error</span></div><div class="detail" style="color:var(--red)">${e.message}</div></div>`;
+  }
+}
+
+async function loadRuntimeExplorer() {
+  const conv = document.getElementById('conversation');
+  try {
+    const [manifest, age, caps] = await Promise.all([
+      fetchJSON('/api/shell/manifest'), fetchJSON('/api/shell/age'), fetchJSON('/api/shell/capabilities'),
+    ]);
+    const mods = (manifest.modules || []).map(m =>
+      `<span style="padding:2px 8px;border-radius:4px;font-size:11px;background:${m.state === 'LOADED' ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'};color:${m.state === 'LOADED' ? 'var(--green)' : 'var(--red)'}">${m.id}</span>`
+    ).join(' ');
+    conv.innerHTML = `
+      <div class="message system"><div class="header"><span>Runtime</span><span class="status ${manifest.state === 'RUNNING' ? 'complete' : 'error'}">${manifest.state}</span></div></div>
+      <div class="message system"><div class="header"><span>Version</span></div><div class="detail">${manifest.version} · ${age.checkpoints || 0} checkpoints</div></div>
+      <div class="message system"><div class="header"><span>Modules (${(manifest.modules || []).length})</span></div><div class="detail"><div style="display:flex;gap:4px;flex-wrap:wrap">${mods || '<span style="color:var(--text2)">None</span>'}</div></div>
+      <div class="message system"><div class="header"><span>Capabilities (${(caps || []).length})</span></div><div class="detail">${(caps || []).slice(0, 8).map(c => `<div class="event"><span class="src">${c.name}</span><span class="ts">cost: ${c.cost_per_run || 1}</span></div>`).join('')}</div>
+    `;
+    scrollToBottom();
+  } catch(e) {
+    conv.innerHTML = `<div class="message system"><div class="detail" style="color:var(--red)">${e.message}</div></div>`;
+  }
+}
+
+async function loadTimelineView() {
+  const conv = document.getElementById('conversation');
+  try {
+    const history = await fetchJSON('/api/shell/history?limit=100');
+    conv.innerHTML = `<div class="message system"><div class="header"><span>Timeline (${history.length} events)</span></div><div class="detail">${(history || []).map(e => `<div class="event"><span class="ts">[${e.ts}]</span><span class="src">${e.source}</span><span>${e.msg}</span></div>`).join('')}</div>`;
+    scrollToBottom();
+  } catch(e) {
+    conv.innerHTML = `<div class="message system"><div class="detail" style="color:var(--red)">${e.message}</div></div>`;
+  }
 }
 
 function showShortcuts() {

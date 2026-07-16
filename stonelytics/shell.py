@@ -70,6 +70,40 @@ def api_capabilities():
 def api_knowledge():
     return jsonify(get_svc().get_knowledge())
 
+@app.route("/api/shell/knowledge/graph")
+def api_knowledge_graph():
+    svc = get_svc()
+    twin = svc.get_twin()
+    identity = svc.get_identity()
+    caps = svc.get_capabilities()
+    return jsonify({
+        "nodes": [
+            {"id": "PROJECT", "type": "root", "label": identity.get("name", "Project"), "state": "ACTIVE"},
+            {"id": "IDENTITY", "type": "domain", "label": "Identity", "state": identity.get("state", "OK")},
+            {"id": "RUNTIME", "type": "domain", "label": "Runtime", "state": svc.get_manifest().get("state", "?")},
+            {"id": "TWIN", "type": "domain", "label": f"Digital Twin ({twin.get('nodes', 0)} nodes)", "state": "ACTIVE"},
+            {"id": "CAPABILITIES", "type": "domain", "label": f"Capabilities ({len(caps)})", "state": "ACTIVE"},
+        ],
+        "relationships": [
+            {"source": "PROJECT", "target": "IDENTITY", "type": "contains"},
+            {"source": "PROJECT", "target": "RUNTIME", "type": "contains"},
+            {"source": "PROJECT", "target": "TWIN", "type": "contains"},
+            {"source": "PROJECT", "target": "CAPABILITIES", "type": "contains"},
+        ],
+    })
+
+@app.route("/api/shell/knowledge/patterns")
+def api_knowledge_patterns():
+    from srie.services.knowledge import KnowledgeEngine
+    k = KnowledgeEngine(get_svc().path)
+    return jsonify(k.list_patterns())
+
+@app.route("/api/shell/knowledge/cases")
+def api_knowledge_cases():
+    from srie.services.knowledge import KnowledgeEngine
+    k = KnowledgeEngine(get_svc().path)
+    return jsonify(k.list_cases())
+
 @app.route("/api/shell/deploy")
 def api_deploy():
     return jsonify(get_svc().deploy())
