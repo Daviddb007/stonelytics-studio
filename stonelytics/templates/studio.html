@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stonelytics Studio — Cognitive Workbench</title>
+<title>Stonelytics Studio</title>
 <style>
   :root {
     --bg: #0f172a; --surface: #1e293b; --surface2: #334155; --surface3: #1a2332;
@@ -23,29 +23,23 @@
 
   .workbench { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-  /* Top Bar */
   .topbar { display: flex; align-items: center; gap: 12px; padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--surface); }
   .topbar .brand { font-size: 14px; font-weight: 600; color: var(--accent); }
+  .topbar .project-name { font-size: 13px; color: var(--text2); }
   .topbar .status { font-size: 11px; padding: 3px 10px; border-radius: 10px; background: var(--surface2); color: var(--text2); margin-left: auto; }
-  .topbar .runtime-badge { font-size: 11px; padding: 3px 10px; border-radius: 10px; }
-  .topbar .runtime-badge.running { background: rgba(34,197,94,0.2); color: var(--green); }
-  .topbar .runtime-badge.stopped { background: rgba(239,68,68,0.2); color: var(--red); }
 
-  /* Main: conversation area */
-  .conversation { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 8px; }
+  .conversation { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 6px; }
 
-  .message { padding: 12px 16px; border-radius: 10px; max-width: 85%; animation: fadeIn 0.3s ease; }
-  .message.user { background: var(--accent); color: #fff; align-self: flex-end; }
-  .message.system { background: var(--surface); border: 1px solid var(--border); align-self: flex-start; }
-  .message.system .header { display: flex; justify-content: space-between; font-size: 11px; color: var(--text2); margin-bottom: 4px; }
-  .message.system .status { font-weight: 500; }
-  .message.system .status.running { color: var(--accent); }
-  .message.system .status.complete { color: var(--green); }
-  .message.system .status.error { color: var(--red); }
-  .message.system .status.warning { color: var(--amber); }
-  .message.system .status.blocked { color: var(--amber); }
-  .message.system .detail { font-size: 13px; line-height: 1.4; }
-  .message.system .detail .label { color: var(--text2); }
+  .msg { padding: 12px 16px; border-radius: 10px; max-width: 88%; animation: fadeIn 0.3s ease; }
+  .msg.user { background: var(--accent); color: #fff; align-self: flex-end; }
+  .msg.system { background: var(--surface); border: 1px solid var(--border); align-self: flex-start; width: 100%; }
+  .msg.system .hdr { display: flex; justify-content: space-between; font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+  .msg.system .hdr .tag { font-weight: 500; padding: 1px 6px; border-radius: 4px; font-size: 10px; }
+  .msg.system .hdr .tag.ok { background: rgba(34,197,94,0.2); color: var(--green); }
+  .msg.system .hdr .tag.warn { background: rgba(245,158,11,0.2); color: var(--amber); }
+  .msg.system .hdr .tag.err { background: rgba(239,68,68,0.2); color: var(--red); }
+  .msg.system .hdr .tag.info { background: rgba(59,130,246,0.2); color: var(--accent); }
+  .msg.system .body { font-size: 13px; line-height: 1.5; }
 
   .thinking { display: flex; align-items: center; gap: 8px; padding: 8px 16px; color: var(--text2); font-size: 13px; }
   .thinking .dots { display: flex; gap: 4px; }
@@ -53,10 +47,9 @@
   .thinking .dots span:nth-child(2) { animation-delay: 0.2s; }
   .thinking .dots span:nth-child(3) { animation-delay: 0.4s; }
 
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes bounce { 0%, 80%, 100% { transform: scale(0.6); } 40% { transform: scale(1); } }
 
-  /* Input Area */
   .input-area { padding: 12px 20px 16px; border-top: 1px solid var(--border); background: var(--surface); }
   .input-row { display: flex; gap: 8px; align-items: center; }
   .input-row input { flex: 1; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--text); font-size: 14px; outline: none; }
@@ -67,116 +60,100 @@
   .input-row button:disabled { opacity: 0.4; cursor: not-allowed; }
   .input-hint { font-size: 11px; color: var(--text2); margin-top: 6px; text-align: center; }
 
-  /* Result Cards */
-  .result-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; margin-top: 8px; }
-  .result-card { background: var(--surface2); border-radius: 6px; padding: 10px; }
-  .result-card .rlabel { font-size: 10px; color: var(--text2); text-transform: uppercase; }
-  .result-card .rvalue { font-size: 18px; font-weight: 600; margin-top: 2px; }
-  .result-card .rvalue.green { color: var(--green); }
-  .result-card .rvalue.blue { color: var(--accent); }
+  .welcome { text-align: center; padding: 40px 20px; }
+  .welcome h1 { font-size: 24px; font-weight: 300; margin-bottom: 8px; }
+  .welcome p { color: var(--text2); font-size: 14px; max-width: 500px; margin: 0 auto; line-height: 1.6; }
+  .welcome .examples { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+  .welcome .examples button { padding: 8px 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text2); cursor: pointer; font-size: 12px; }
+  .welcome .examples button:hover { background: var(--surface); color: var(--text); border-color: var(--accent); }
 
-  .execution-steps { margin-top: 8px; }
-  .execution-steps .estep { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px; }
-  .execution-steps .estep .icon { width: 16px; text-align: center; }
-
-  .event { padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; display: flex; gap: 8px; }
-  .event:last-child { border-bottom: none; }
-  .event .ts { color: var(--text2); font-family: monospace; white-space: nowrap; margin-left: auto; }
-  .event .src { color: var(--accent); }
+  .quick-info { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 8px; }
+  .quick-info .qi { background: var(--surface2); border-radius: 6px; padding: 8px 10px; }
+  .quick-info .qi .lbl { font-size: 10px; color: var(--text2); text-transform: uppercase; }
+  .quick-info .qi .val { font-size: 16px; font-weight: 600; margin-top: 2px; }
+  .quick-info .qi .val.green { color: var(--green); }
+  .quick-info .qi .val.blue { color: var(--accent); }
 </style>
 </head>
 <body>
 <div class="shell">
   <div class="activity-bar">
-    <button class="a-btn active" onclick="resetWorkbench()" title="Cognitive Workbench">💡</button>
-    <button class="a-btn" onclick="switchView('runtime')" title="Runtime">⚡</button>
-    <button class="a-btn" onclick="switchView('knowledge')" title="Knowledge">🧠</button>
-    <button class="a-btn" onclick="switchView('knowledge')" title="Knowledge">🧠</button>
-    <button class="a-btn" onclick="switchView('timeline')" title="Timeline">📋</button>
-    <button class="a-btn" onclick="switchView('deploy')" title="Deployment">🚀</button>
-    <div class="bottom"><button class="a-btn" onclick="showShortcuts()" title="Shortcuts">?</button></div>
+    <button class="a-btn active" onclick="resetChat()" title="Inicio">🏠</button>
+    <div class="bottom"><button class="a-btn" onclick="showHelp()" title="Ayuda">?</button></div>
   </div>
 
-  <div class="workbench" id="workbench">
+  <div class="workbench">
     <div class="topbar">
       <span class="brand">Stonelytics Studio</span>
-      <span style="font-size:12px;color:var(--text2)" id="project-name">Loading...</span>
-      <span class="runtime-badge" id="runtime-badge">Runtime: --</span>
-      <span class="status" id="status-text">Ready</span>
+      <span class="project-name" id="project-name">—</span>
+      <span class="status" id="status-badge">Listo</span>
     </div>
 
-    <div class="conversation" id="conversation">
-      <div class="message system">
-        <div class="header"><span>Stonelytics Studio</span><span class="status complete">Ready</span></div>
-        <div class="detail">Welcome to the Cognitive Workbench. Tell me what you want to build or analyze.</div>
-      </div>
-    </div>
+    <div class="conversation" id="conversation"></div>
 
     <div class="input-area">
       <div class="input-row">
-        <input type="text" id="intention-input" placeholder="What do you want to do? (e.g., Build a SaaS for lawyers, Analyze this project, Deploy to production)" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();submitIntention()}">
-        <button id="submit-btn" onclick="submitIntention()">Execute</button>
+        <input type="text" id="intention-input" placeholder="¿Qué quieres hacer? (ej: Construye un SaaS para abogados, Analiza el proyecto, Despliega a producción)" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage()}">
+        <button id="submit-btn" onclick="sendMessage()">Enviar</button>
       </div>
-      <div class="input-hint">Describe your goal — the Conductor will plan and execute the work</div>
+      <div class="input-hint">Describe tu objetivo — el asistente planificará y ejecutará el trabajo</div>
     </div>
   </div>
 </div>
 
 <script>
-let isExecuting = false;
+let isProcessing = false;
 
-async function submitIntention() {
+async function sendMessage() {
   const input = document.getElementById('intention-input');
   const text = input.value.trim();
-  if (!text || isExecuting) return;
-
-  isExecuting = true;
+  if (!text || isProcessing) return;
+  isProcessing = true;
   input.value = '';
   document.getElementById('submit-btn').disabled = true;
-  document.getElementById('submit-btn').textContent = 'Working...';
+  document.getElementById('submit-btn').textContent = 'Trabajando...';
 
-  addMessage('user', text);
+  addMsg('user', text);
   addThinking();
 
   try {
     const resp = await fetch('/api/shell/conductor', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({intention: text}),
     });
     const data = await resp.json();
     removeThinking();
-    displayResult(data);
+    displayResponse(data);
   } catch (e) {
     removeThinking();
-    addMessage('system', `<div class="detail" style="color:var(--red)">Error: ${e.message}</div>`);
+    addSystemMsg('Error', 'err', e.message);
   }
 
-  isExecuting = false;
+  isProcessing = false;
   document.getElementById('submit-btn').disabled = false;
-  document.getElementById('submit-btn').textContent = 'Execute';
-  scrollToBottom();
+  document.getElementById('submit-btn').textContent = 'Enviar';
+  scrollDown();
 }
 
-function addMessage(type, content) {
-  const conv = document.getElementById('conversation');
-  const msg = document.createElement('div');
-  msg.className = `message ${type}`;
-  if (type === 'user') {
-    msg.textContent = content;
-  }
-  conv.appendChild(msg);
-  scrollToBottom();
+function addMsg(type, content) {
+  const c = document.getElementById('conversation');
+  const m = document.createElement('div');
+  m.className = `msg ${type}`;
+  m.textContent = content;
+  c.appendChild(m);
+  scrollDown();
+}
+
+function addSystemMsg(title, tag, detail) {
+  const c = document.getElementById('conversation');
+  c.innerHTML += `<div class="msg system"><div class="hdr"><span>${title}</span><span class="tag ${tag}">${tag.toUpperCase()}</span></div><div class="body">${detail}</div></div>`;
+  scrollDown();
 }
 
 function addThinking() {
-  const conv = document.getElementById('conversation');
-  const div = document.createElement('div');
-  div.className = 'thinking';
-  div.id = 'thinking';
-  div.innerHTML = '<span>Thinking</span><div class="dots"><span></span><span></span><span></span></div>';
-  conv.appendChild(div);
-  scrollToBottom();
+  const c = document.getElementById('conversation');
+  c.innerHTML += '<div class="thinking" id="thinking"><span>Trabajando</span><div class="dots"><span></span><span></span><span></span></div></div>';
+  scrollDown();
 }
 
 function removeThinking() {
@@ -184,260 +161,64 @@ function removeThinking() {
   if (t) t.remove();
 }
 
-function displayResult(data) {
-  const conv = document.getElementById('conversation');
-
-  // Summary message
-  const summary = document.createElement('div');
-  summary.className = 'message system';
-  const statusClass = data.status === 'complete' ? 'complete' : 'error';
-  summary.innerHTML = `<div class="header"><span>Conductor</span><span class="status ${statusClass}">${data.status.toUpperCase()} — ${data.duration_seconds}s</span></div>`;
-  summary.innerHTML += `<div class="detail">Executed: <strong>${data.intention}</strong></div>`;
-  conv.appendChild(summary);
-
-  // Steps as execution chain
-  const stepsDiv = document.createElement('div');
-  stepsDiv.className = 'message system';
-  stepsDiv.style.marginTop = '4px';
-  let stepsHtml = '<div class="header"><span>Execution Steps</span></div><div class="execution-steps">';
+function displayResponse(data) {
+  const c = document.getElementById('conversation');
   data.steps.forEach(s => {
-    const icons = {running: '⏳', complete: '✅', error: '❌', warning: '⚠️', blocked: '🔒'};
-    stepsHtml += `<div class="estep"><span class="icon">${icons[s.status] || '⬜'}</span><span>${s.name}</span><span style="color:var(--text2);font-size:11px;margin-left:auto">${s.detail || ''}</span></div>`;
+    const tagMap = {'complete':'ok', 'warning':'warn', 'error':'err', 'blocked':'warn', 'info':'info', 'running':'info', 'pending':'info'};
+    const tag = tagMap[s.status] || 'info';
+    const iconMap = {'running':'⏳', 'complete':'✅', 'error':'❌', 'warning':'⚠️', 'blocked':'🔒', 'info':'💡', 'pending':'⬜'};
+    const icon = iconMap[s.status] || '•';
+    c.innerHTML += `<div class="msg system"><div class="hdr"><span>${icon} ${s.name}</span><span class="tag ${tag}">${s.status.toUpperCase()}</span></div><div class="body">${s.detail || ''}</div></div>`;
   });
-  stepsHtml += '</div>';
-  stepsDiv.innerHTML = stepsHtml;
-  conv.appendChild(stepsDiv);
-
-  // Result metrics if available
-  const lastStep = data.steps[data.steps.length - 1];
-  if (lastStep && lastStep.detail) {
-    const result = document.createElement('div');
-    result.className = 'message system';
-    result.innerHTML = `<div class="header"><span>Result</span></div><div class="detail">${lastStep.detail}</div>`;
-    conv.appendChild(result);
+  if (data.duration_seconds !== undefined && data.duration_seconds > 0) {
+    c.innerHTML += `<div class="msg system" style="border-color:var(--surface2);margin-top:2px"><div class="body" style="font-size:11px;color:var(--text2)">Completado en ${data.duration_seconds}s</div></div>`;
   }
-
-  scrollToBottom();
+  scrollDown();
 }
 
-function scrollToBottom() {
-  const conv = document.getElementById('conversation');
-  setTimeout(() => { conv.scrollTop = conv.scrollHeight; }, 50);
+function scrollDown() { setTimeout(() => { const c = document.getElementById('conversation'); c.scrollTop = c.scrollHeight; }, 50); }
+
+function resetChat() {
+  const c = document.getElementById('conversation');
+  c.innerHTML = `<div class="msg system"><div class="body"><div class="welcome">
+    <h1>Stonelytics Studio</h1>
+    <p>Cuéntame qué necesitas construir o analizar. Yo me encargo del resto.</p>
+    <div class="examples">
+      <button onclick="quickIntent('Construye un SaaS para abogados')">Construye un SaaS</button>
+      <button onclick="quickIntent('Analiza el proyecto')">Analiza el proyecto</button>
+      <button onclick="quickIntent('Despliega a producción')">Despliega</button>
+      <button onclick="quickIntent('Revisa si hay errores')">Revisa errores</button>
+    </div>
+  </div></div></div>`;
+  document.getElementById('status-badge').textContent = 'Listo';
 }
 
-function resetWorkbench() {
-  document.getElementById('conversation').innerHTML = `
-    <div class="message system">
-      <div class="header"><span>Stonelytics Studio</span><span class="status complete">Ready</span></div>
-      <div class="detail">Welcome to the Cognitive Workbench. Tell me what you want to build or analyze.</div>
-    </div>`;
-  document.getElementById('intention-input').value = '';
-  document.getElementById('status-text').textContent = 'Ready';
+function quickIntent(text) {
+  document.getElementById('intention-input').value = text;
+  sendMessage();
 }
 
-function switchView(view) {
-  document.querySelectorAll('.a-btn').forEach(b => b.classList.remove('active'));
-  const idx = {runtime:1, knowledge:2, timeline:3, knowledge:4}[view] || 0;
-  const btns = document.querySelectorAll('.a-btn');
-  if (view === 'runtime') btns[1].classList.add('active');
-  else if (view === 'knowledge') btns[2].classList.add('active');
-  else if (view === 'timeline') btns[3].classList.add('active');
-  else if (view === 'deploy') btns[4].classList.add('active');
-  else btns[0].classList.add('active');
-  document.getElementById('status-text').textContent = `View: ${view}`;
-
-  const conv = document.getElementById('conversation');
-  if (view === 'knowledge') {
-    conv.innerHTML = `<div class="message system"><div class="header"><span>Knowledge Explorer</span><span class="status complete">Loaded</span></div><div class="detail">Loading knowledge graph...</div></div>`;
-    loadKnowledgeExplorer();
-  } else if (view === 'runtime') {
-    conv.innerHTML = `<div class="message system"><div class="header"><span>Runtime Explorer</span><span class="status complete">Loaded</span></div><div class="detail">Loading runtime state...</div></div>`;
-    loadRuntimeExplorer();
-  } else if (view === 'timeline') {
-    conv.innerHTML = `<div class="message system"><div class="header"><span>Timeline</span><span class="status complete">Loaded</span></div><div class="detail">Loading event history...</div></div>`;
-    loadTimelineView();
-  } else if (view === 'deploy') {
-    conv.innerHTML = `<div class="message system"><div class="header"><span>Deployment Center</span><span class="status complete">Loaded</span></div><div class="detail">Loading deployment targets...</div></div>`;
-    loadDeploymentCenter();
-  }
-}
-
-async function loadKnowledgeExplorer() {
-  const conv = document.getElementById('conversation');
-  try {
-    const [graph, patterns, cases, k] = await Promise.all([
-      fetchJSON('/api/shell/knowledge/graph'),
-      fetchJSON('/api/shell/knowledge/patterns'),
-      fetchJSON('/api/shell/knowledge/cases'),
-      fetchJSON('/api/shell/knowledge'),
-    ]);
-
-    let html = `<div class="message system"><div class="header"><span>Knowledge Base</span><span class="status complete">${k.patterns || 0} patterns · ${k.cases || 0} cases · ${k.reuse || 0}% reuse</span></div></div>`;
-
-    // Graph as entity cards
-    html += `<div class="message system"><div class="header"><span>Digital Twin</span></div><div class="detail"><div class="result-grid">`;
-    (graph.nodes || []).forEach(n => {
-      const cls = n.state === 'ACTIVE' || n.state === 'RUNNING' ? 'green' : 'blue';
-      html += `<div class="result-card"><div class="rlabel">${n.type}</div><div class="rvalue ${cls}">${n.label}</div><div style="font-size:10px;color:var(--text2);margin-top:2px">${n.state}</div></div>`;
-    });
-    html += `</div></div></div>`;
-
-    // Relationships
-    html += `<div class="message system"><div class="header"><span>Knowledge Graph</span></div><div class="detail" style="font-family:monospace;font-size:12px;line-height:1.6">`;
-    (graph.relationships || []).forEach(r => {
-      html += `<div style="padding:2px 0">📦 ${r.source} <span style="color:var(--accent)">─${r.type}→</span> ${r.target}</div>`;
-    });
-    html += `</div></div>`;
-
-    // Patterns
-    if (patterns && patterns.length > 0) {
-      html += `<div class="message system"><div class="header"><span>Patterns (${patterns.length})</span></div><div class="detail">`;
-      patterns.slice(-5).reverse().forEach(p => {
-        html += `<div class="event"><span class="src">[${p.type}]</span><span>${p.title}</span><span class="ts">confidence: ${(p.confidence || 0).toFixed(2)}</span></div>`;
-      });
-      html += `</div></div>`;
-    }
-
-    // Cases
-    if (cases && cases.length > 0) {
-      html += `<div class="message system"><div class="header"><span>Cases (${cases.length})</span></div><div class="detail">`;
-      cases.slice(-5).reverse().forEach(c => {
-        html += `<div class="event"><span class="src">${c.action}</span><span>→ ${c.outcome}</span><span class="ts">score: ${(c.score || 0).toFixed(2)}</span></div>`;
-      });
-      html += `</div></div>`;
-    }
-
-    conv.innerHTML = html;
-    scrollToBottom();
-  } catch(e) {
-    conv.innerHTML = `<div class="message system"><div class="header"><span>Error</span></div><div class="detail" style="color:var(--red)">${e.message}</div></div>`;
-  }
-}
-
-async function loadRuntimeExplorer() {
-  const conv = document.getElementById('conversation');
-  try {
-    const [manifest, age, caps] = await Promise.all([
-      fetchJSON('/api/shell/manifest'), fetchJSON('/api/shell/age'), fetchJSON('/api/shell/capabilities'),
-    ]);
-    const mods = (manifest.modules || []).map(m =>
-      `<span style="padding:2px 8px;border-radius:4px;font-size:11px;background:${m.state === 'LOADED' ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'};color:${m.state === 'LOADED' ? 'var(--green)' : 'var(--red)'}">${m.id}</span>`
-    ).join(' ');
-    conv.innerHTML = `
-      <div class="message system"><div class="header"><span>Runtime</span><span class="status ${manifest.state === 'RUNNING' ? 'complete' : 'error'}">${manifest.state}</span></div></div>
-      <div class="message system"><div class="header"><span>Version</span></div><div class="detail">${manifest.version} · ${age.checkpoints || 0} checkpoints</div></div>
-      <div class="message system"><div class="header"><span>Modules (${(manifest.modules || []).length})</span></div><div class="detail"><div style="display:flex;gap:4px;flex-wrap:wrap">${mods || '<span style="color:var(--text2)">None</span>'}</div></div>
-      <div class="message system"><div class="header"><span>Capabilities (${(caps || []).length})</span></div><div class="detail">${(caps || []).slice(0, 8).map(c => `<div class="event"><span class="src">${c.name}</span><span class="ts">cost: ${c.cost_per_run || 1}</span></div>`).join('')}</div>
-    `;
-    scrollToBottom();
-  } catch(e) {
-    conv.innerHTML = `<div class="message system"><div class="detail" style="color:var(--red)">${e.message}</div></div>`;
-  }
-}
-
-async function loadDeploymentCenter() {
-  const conv = document.getElementById('conversation');
-  try {
-    const data = await fetchJSON('/api/shell/deployments');
-    let html = `<div class="message system"><div class="header"><span>Deployment Targets</span><span class="status complete">${data.total || 0} targets</span></div></div>`;
-
-    if (data.targets && data.targets.length > 0) {
-      data.targets.forEach(t => {
-        const deploys = t.deployments || [];
-        const lastVer = deploys.length > 0 ? `v${deploys[deploys.length-1]}` : 'none';
-        html += `<div class="message system"><div class="header"><span>${t.name}</span><span class="status ${t.state === 'ACTIVE' ? 'complete' : 'complete'}">${t.environment}</span></div>
-          <div class="detail">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-              <span style="font-size:11px;padding:3px 8px;border-radius:4px;background:var(--surface2)">ID: ${t.id}</span>
-              <span style="font-size:11px;padding:3px 8px;border-radius:4px;background:var(--surface2)">Deployments: ${deploys.length}</span>
-              <span style="font-size:11px;padding:3px 8px;border-radius:4px;background:var(--surface2)">URL: ${t.url || '—'}</span>
-            </div>
-            <div style="display:flex;gap:8px;margin-top:8px">
-              <button onclick="deployTo('${t.id}')" style="padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Deploy v1.0.0</button>
-              <button onclick="rollbackTo('${t.id}')" style="padding:6px 14px;background:var(--amber);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Rollback</button>
-            </div>
-          </div></div>`;
-      });
-    } else {
-      html += `<div class="message system"><div class="header"><span>No targets</span></div><div class="detail">
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <input type="text" id="new-target-name" placeholder="Target name" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:13px;flex:1">
-          <input type="text" id="new-target-env" placeholder="environment" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:13px;width:120px">
-          <button onclick="registerTarget()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer">Register</button>
-        </div>
-      </div></div>`;
-    }
-
-    conv.innerHTML = html;
-    scrollToBottom();
-  } catch(e) {
-    conv.innerHTML = `<div class="message system"><div class="detail" style="color:var(--red)">${e.message}</div></div>`;
-  }
-}
-
-async function deployTo(targetId) {
-  const conv = document.getElementById('conversation');
-  conv.innerHTML += `<div class="message system"><div class="detail">Deploying to ${targetId}...</div></div>`;
-  scrollToBottom();
-  const resp = await fetch('/api/shell/deploy/run', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({target_id: targetId, version: '1.0.0'}) });
-  const data = await resp.json();
-  conv.innerHTML += `<div class="message system"><div class="header"><span>Deploy Result</span><span class="status ${data.error ? 'error' : 'complete'}">${data.error ? 'FAILED' : 'DEPLOYED'}</span></div><div class="detail">${data.error || `v${data.version} → ${data.target} (${data.deployment_id})`}</div></div>`;
-  scrollToBottom();
-}
-
-async function rollbackTo(targetId) {
-  const conv = document.getElementById('conversation');
-  conv.innerHTML += `<div class="message system"><div class="detail">Rolling back ${targetId}...</div></div>`;
-  scrollToBottom();
-  const resp = await fetch('/api/shell/deploy/rollback', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({target_id: targetId}) });
-  const data = await resp.json();
-  conv.innerHTML += `<div class="message system"><div class="header"><span>Rollback</span><span class="status ${data.error ? 'error' : 'complete'}">${data.error ? 'FAILED' : 'ROLLED BACK'}</span></div><div class="detail">${data.error || `Version: ${data.version}`}</div></div>`;
-  scrollToBottom();
-}
-
-async function registerTarget() {
-  const name = document.getElementById('new-target-name').value;
-  const env = document.getElementById('new-target-env').value || 'production';
-  if (!name) return;
-  const resp = await fetch('/api/shell/deploy/target', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({name, env}) });
-  await resp.json();
-  loadDeploymentCenter();
-}
-
-async function loadTimelineView() {
-  const conv = document.getElementById('conversation');
-  try {
-    const history = await fetchJSON('/api/shell/history?limit=100');
-    conv.innerHTML = `<div class="message system"><div class="header"><span>Timeline (${history.length} events)</span></div><div class="detail">${(history || []).map(e => `<div class="event"><span class="ts">[${e.ts}]</span><span class="src">${e.source}</span><span>${e.msg}</span></div>`).join('')}</div>`;
-    scrollToBottom();
-  } catch(e) {
-    conv.innerHTML = `<div class="message system"><div class="detail" style="color:var(--red)">${e.message}</div></div>`;
-  }
-}
-
-function showShortcuts() {
-  const conv = document.getElementById('conversation');
-  conv.innerHTML += `<div class="message system"><div class="header"><span>Shortcuts</span></div><div class="detail">
-    • Type any goal and press Enter to execute<br>
-    • "Build a SaaS for lawyers" → full pipeline<br>
-    • "Analyze this project" → discovery + indicators<br>
-    • "Deploy to production" → deployment<br>
-    • "Fix issues" → auto-repair<br>
-    • Click 💡 to reset the workbench
+function showHelp() {
+  const c = document.getElementById('conversation');
+  c.innerHTML += `<div class="msg system"><div class="hdr"><span>💡 Ayuda</span></div><div class="body">
+    Puedes pedirme cosas como:<br>
+    • <strong>Construye un SaaS para abogados</strong> — planifica y empieza la construcción<br>
+    • <strong>Analiza el proyecto</strong> — revisa estructura y madurez<br>
+    • <strong>Despliega a producción</strong> — publica la última versión<br>
+    • <strong>Revisa si hay errores</strong> — diagnostica y repara incidencias<br>
+    • <strong>Cualquier cosa que necesites</strong> — haré lo posible por ayudarte
   </div></div>`;
-  scrollToBottom();
+  scrollDown();
 }
 
-// Load identity on boot
+// Boot
+resetChat();
 (async function() {
   try {
-    const resp = await fetch('/api/shell/workspace');
-    const data = await resp.json();
-    document.getElementById('project-name').textContent = data.identity?.name || 'Unknown';
-    const state = data.manifest?.state || 'STOPPED';
-    const badge = document.getElementById('runtime-badge');
-    badge.textContent = `Runtime: ${state}`;
-    badge.className = `runtime-badge ${state === 'RUNNING' ? 'running' : 'stopped'}`;
+    const r = await fetch('/api/shell/workspace');
+    const d = await r.json();
+    document.getElementById('project-name').textContent = d.identity?.name || '—';
+    document.getElementById('status-badge').textContent = d.manifest?.state === 'RUNNING' ? 'Operativo' : 'Detenido';
   } catch(e) {}
 })();
 </script>

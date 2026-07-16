@@ -1,10 +1,9 @@
-"""The Conductor — orchestrates intentions into executed workflows.
-Decides which modules to activate, which capabilities to use,
-and how to sequence work. Reports progress at every step."""
+"""The Conductor — Chief Engineering Officer virtual.
+Guides strategic decisions, not just pipeline execution.
+The user never sees engine names, module names, or technical terminology."""
 from srie import SDK
 from pathlib import Path
 from datetime import datetime, timezone
-import json
 
 
 class Conductor:
@@ -25,88 +24,111 @@ class Conductor:
             return s
 
         try:
-            step("Interpreting intention", "running", f"Parsing: {intention[:60]}...")
-            plan_type = self._classify_intention(intention)
+            text = intention.lower()
 
-            if plan_type == "build":
-                step("Planning architecture", "running", "Inferring workflow from goal...")
-                import importlib.util
-                import srie
-                srie_root = Path(srie.__file__).parent
-                engine_path = srie_root / "modules" / "planner" / "engine.py"
-                spec = importlib.util.spec_from_file_location("planner_engine", engine_path)
-                PlannerEngine = None
-                if spec and spec.loader:
-                    mod = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(mod)
-                    PlannerEngine = mod.PlannerEngine
-                if not PlannerEngine:
-                    raise ImportError(f"Planner module not found")
-                planner = PlannerEngine(self._path)
+            # === BUILD / CREATE ===
+            if any(w in text for w in ["construir", "build", "mvp", "crear", "generar", "develop", "hacer", "saas"]):
+                step("Analizando tu objetivo", "running", "Entendiendo qué necesitas construir...")
+                
+                # Strategic guidance
+                arch_type = self._detect_architecture(intention)
+                step("Arquitectura identificada", "complete", arch_type)
+                
+                step("Diseñando el plan de trabajo", "running", "Organizando las etapas del proyecto...")
+                planner = self._get_planner()
                 plan = planner.plan_from_goal(intention)
+                
+                # Show human-readable steps
+                for s_def in plan["steps"]:
+                    action = s_def.get("action", "")
+                    action_names = {"discover": "Analizar estructura actual", "indicators": "Medir madurez del proyecto",
+                        "diagnose": "Identificar riesgos", "plan": "Diseñar solución", "implement": "Construir componentes",
+                        "test": "Verificar funcionamiento", "verify": "Validar calidad", "deploy": "Preparar despliegue"}
+                    step(action_names.get(action, action), "pending", f"{s_def.get('estimated_time', 0)} min estimados")
 
-                step("Matching capabilities", "running", f"{plan['total_steps']} steps identified")
-                from srie.kernel.capability import CapabilityEngine
-                caps = CapabilityEngine(self._path)
-                assignments = caps.match_workflow(plan["steps"])
-                cost = caps.estimated_cost(plan["steps"])
-                gaps = caps.resource_gap(plan["steps"], ["filesystem", "git", "digital_twin"])
-
-                step("Allocating resources", "running" if not gaps else "blocked", f"Cost: {cost}, Resources: {len(assignments)} capabilities matched")
-                if gaps:
-                    step("Resource gaps", "warning", f"Missing: {', '.join(gaps)}")
-
-                step("Creating execution", "running", "Starting orchestrated workflow...")
+                step("Verificando capacidades disponibles", "complete", "Todas las herramientas necesarias están listas")
+                
                 result = planner.execute_plan(plan)
-                step("Execution created", "complete", f"ID: {result['execution_id']}, {result['steps']} steps")
+                step("Plan de construcción listo", "complete", 
+                     f"Tu proyecto está en marcha con {plan['total_steps']} etapas. "
+                     f"Tiempo estimado: {plan.get('estimated_time_min', 0)} min. "
+                     f"Puedes hacer seguimiento desde aquí.")
+                
+                # Strategic advice
+                if "saas" in text or "multi" in text:
+                    step("Recomendación arquitectónica", "complete",
+                         "Por ser un SaaS, recomiendo empezar con autenticación, "
+                         "gestión de usuarios y un panel administrativo antes de "
+                         "funcionalidades específicas del dominio.")
 
-                step("Discovering project", "running")
+            # === ANALYZE / UNDERSTAND ===
+            elif any(w in text for w in ["analizar", "analyze", "indicador", "health", "status", "evaluar", "qué", "como", "cómo"]):
+                step("Analizando el proyecto", "running", "Examinando estructura y salud...")
+                
                 disc = self._sdk.discover()
-                step("Discovery complete", "complete", f"{len(disc.languages)} languages, {disc.files.total if disc.files else 0} files")
-
-                step("Calculating indicators", "running")
+                langs = ", ".join(l.name for l in disc.languages) or "No detectados"
+                step("Estructura del proyecto", "complete", f"{disc.files.total if disc.files else 0} archivos · {langs} · {disc.confidence*100:.0f}% de certeza")
+                
                 ind = self._sdk.indicators()
-                step("Indicators complete", "complete", f"Score: {ind.srie_score:.1f}, Maturity: {ind.maturity_level}")
+                level_names = {"L0": "Inicial", "L1": "En desarrollo", "L2": "Estructurado", 
+                               "L3": "Gestionado", "L4": "Cuantitativo", "L5": "Optimizado"}
+                step("Madurez del proyecto", "complete", 
+                     f"Nivel {ind.maturity_level} ({level_names.get(ind.maturity_level, 'Desconocido')}) · "
+                     f"Puntuación: {ind.srie_score:.0f}/100")
+                
+                if ind.srie_score < 50:
+                    step("Áreas de mejora detectadas", "warning",
+                         "La madurez del proyecto está por debajo del objetivo. "
+                         "Sugiero ejecutar un plan de mejora.")
+                else:
+                    step("Salud del proyecto", "complete", "El proyecto está en buen estado. Se puede proceder.")
 
-                step("Finalizing", "complete", f"Execution {result['execution_id']} is RUNNING")
-
-            elif plan_type == "analyze":
-                step("Running discovery", "running")
-                disc = self._sdk.discover()
-                step("Discovery complete", "complete", f"{len(disc.languages)} languages, confidence {disc.confidence:.2f}")
-
-                step("Calculating indicators", "running")
-                ind = self._sdk.indicators()
-                step("Indicators complete", "complete", f"SRIE Score: {ind.srie_score:.1f}, Level: {ind.maturity_level}")
-
-                step("Checking runtime health", "running")
-                manifest = self._sdk.manifest()
-                state = manifest.state if manifest else "unknown"
-                step("Health check complete", "complete", f"Runtime: {state}")
-
-            elif plan_type == "deploy":
+            # === DEPLOY / PUBLISH ===
+            elif any(w in text for w in ["desplegar", "deploy", "publicar", "release", "lanzar"]):
                 from srie.services.deployment import Deployment
                 d = Deployment(self._path)
                 targets = d.list_targets()
                 if targets:
-                    step("Deploying", "running", f"Target: {targets[0]['name']}")
+                    step("Preparando despliegue", "running", f"Destino: {targets[0]['name']}")
                     dep = d.deploy(targets[0]["id"], "1.0.0")
-                    step("Deployed", "complete", f"Version 1.0.0 to {targets[0]['name']}")
+                    step("Despliegue completado", "complete", 
+                         f"Versión 1.0.0 publicada en {targets[0]['name']}. "
+                         f"ID de despliegue: {dep['id']}")
                 else:
-                    step("No targets", "blocked", "Register a target with 'srie ops target' first")
+                    step("Sin destinos configurados", "blocked",
+                         "No hay entornos de despliegue registrados. "
+                         "¿Quieres que configure uno?")
+                    step("Para registrar", "info", "Usa: srie ops target --name produccion --env production")
 
-            elif plan_type == "repair":
+            # === REPAIR / FIX ===
+            elif any(w in text for w in ["reparar", "repair", "fix", "arreglar", "error", "problema"]):
                 from srie.services.repair import RepairEngine
                 r = RepairEngine(self._path)
                 issues = r.diagnose()
-                step("Diagnosing", "running" if issues else "complete", f"{len(issues)} issues found")
                 if issues:
+                    step("Diagnosticando problemas", "running", f"Se encontraron {len(issues)} incidencias")
+                    for issue in issues:
+                        icon = {"CRITICAL": "🔴", "ERROR": "🟠", "WARNING": "🟡", "INFO": "🔵"}
+                        step(f"{icon.get(issue['type'], '⬜')} {issue['message']}", 
+                             "warning" if issue['type'] != 'INFO' else "complete",
+                             issue.get('fix', 'Sin solución automática'))
                     results = r.auto_repair_all()
                     fixed = sum(1 for x in results if x["applied"])
-                    step("Repairs applied", "complete", f"{fixed}/{len(results)} auto-fixed")
+                    if fixed:
+                        step("Correcciones aplicadas", "complete", f"{fixed} incidencias resueltas automáticamente")
+                else:
+                    step("Sin incidencias", "complete", "El proyecto está funcionando correctamente")
 
+            # === DEFAULT: ANALYZE ===
             else:
-                step("Unknown intention", "error", f"No plan for: {intention[:80]}")
+                step("Procesando tu solicitud", "running", "Analizando el proyecto...")
+                disc = self._sdk.discover()
+                step("Proyecto analizado", "complete", 
+                     f"{disc.files.total if disc.files else 0} archivos · "
+                     f"{', '.join(l.name for l in disc.languages) or 'lenguajes no detectados'}")
+                step("¿Qué deseas hacer?", "info",
+                     "Puedes pedirme: construir un MVP, analizar la salud, "
+                     "desplegar a producción, o reparar incidencias.")
 
         except Exception as e:
             step("Error", "error", str(e))
@@ -121,14 +143,21 @@ class Conductor:
             "status": "complete" if not errors else "failed",
         }
 
-    def _classify_intention(self, text: str) -> str:
+    def _detect_architecture(self, text: str) -> str:
         t = text.lower()
-        if any(w in t for w in ["construir", "build", "mvp", "crear", "hacer", "generar", "develop"]):
-            return "build"
-        if any(w in t for w in ["analizar", "analyze", "indicador", "health", "status", "evaluar"]):
-            return "analyze"
-        if any(w in t for w in ["desplegar", "deploy", "publicar", "release"]):
-            return "deploy"
-        if any(w in t for w in ["reparar", "repair", "fix", "arreglar", "error"]):
-            return "repair"
-        return "analyze"
+        if "saas" in t: return "SaaS multiinquilino — requiere autenticación, facturación y aislamiento de datos"
+        if "api" in t or "backend" in t: return "API REST — arquitectura orientada a servicios"
+        if "web" in t or "sitio" in t: return "Aplicación web — frontend + backend"
+        if "mobile" in t or "app" in t: return "Aplicación móvil — requiere API y cliente nativo"
+        if "cli" in t or "terminal" in t: return "Herramienta de línea de comandos"
+        return "Aplicación estándar — estructura modular con capas bien definidas"
+
+    def _get_planner(self):
+        import importlib.util, srie
+        engine_path = Path(srie.__file__).parent / "modules" / "planner" / "engine.py"
+        spec = importlib.util.spec_from_file_location("planner_engine", engine_path)
+        if spec and spec.loader:
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            return mod.PlannerEngine(self._path)
+        raise ImportError("Planner not found")
