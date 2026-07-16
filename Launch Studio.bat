@@ -7,27 +7,30 @@ echo    Stonelytics Studio — Cognitive Engineering
 echo ============================================
 echo.
 
-:: ─── 1. Check Python ───
-echo [1/6] Verificando Python...
-python --version >nul 2>&1
+:: ─── Detect Python ───
+set PYTHON=python
+py -3 --version >nul 2>&1
+if %errorlevel% equ 0 set PYTHON=py -3
+%PYTHON% --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo [FAIL] Python no encontrado.
     echo.
     echo Instala Python desde: https://www.python.org/downloads/
+    echo IMPORTANTE: Marca "Add Python to PATH" durante la instalacion.
     pause
     exit /b 1
 )
-for /f "tokens=2" %%i in ('python --version 2^>^&1') do set PYVER=%%i
+for /f "tokens=2" %%i in ('%PYTHON% --version 2^>^&1') do set PYVER=%%i
 echo [OK] Python %PYVER%
 
 :: ─── 2. Check / Install srie-runtime ───
 echo [2/6] Verificando SRIE Runtime...
-python -c "import srie" >nul 2>&1
+%PYTHON% -c "import srie" >nul 2>&1
 if %errorlevel% neq 0 (
     echo [..] Instalando srie-runtime...
     if exist ".\srie-runtime" (
         cd srie-runtime
-        python -m pip install -e . >nul 2>&1
+        %PYTHON% -m pip install -e . >nul 2>&1
         cd ..
     ) else (
         echo [FAIL] No se encuentra srie-runtime/
@@ -40,12 +43,12 @@ echo [OK] SRIE Runtime
 
 :: ─── 3. Check / Install stonelytics-studio ───
 echo [3/6] Verificando Stonelytics Studio...
-python -c "import stonelytics" >nul 2>&1
+%PYTHON% -c "import stonelytics" >nul 2>&1
 if %errorlevel% neq 0 (
     echo [..] Instalando stonelytics-studio...
     if exist ".\stonelytics-studio" (
         cd stonelytics-studio
-        python -m pip install -e . >nul 2>&1
+        %PYTHON% -m pip install -e . >nul 2>&1
         cd ..
     ) else (
         echo [FAIL] No se encuentra stonelytics-studio/
@@ -60,7 +63,7 @@ echo [OK] Stonelytics Studio
 echo [4/6] Verificando proyecto...
 if not exist ".\SDOS\IDENTITY.yaml" (
     echo [..] Inicializando proyecto...
-    srie init . >nul 2>&1
+    %PYTHON% -m srie.cli.main init . >nul 2>&1
     echo [OK] Proyecto inicializado
 ) else (
     echo [OK] Proyecto listo
@@ -68,11 +71,11 @@ if not exist ".\SDOS\IDENTITY.yaml" (
 
 :: ─── 5. Initialize Universe if needed ───
 echo [5/6] Verificando Universo...
-srie universe status . >nul 2>&1
+%PYTHON% -m srie.cli.main universe status . >nul 2>&1
 if %errorlevel% neq 0 (
     echo [..] Inicializando Universo...
-    srie universe init . --name "Mi Universo" >nul 2>&1
-    srie universe org . "Mi Organizacion" >nul 2>&1
+    %PYTHON% -m srie.cli.main universe init . --name "Mi Universo" >nul 2>&1
+    %PYTHON% -m srie.cli.main universe org . "Mi Organizacion" >nul 2>&1
     echo [OK] Universo creado
 ) else (
     echo [OK] Universo listo
@@ -89,6 +92,6 @@ echo.
 
 set STUDIO_PROJECT=%CD%
 start http://localhost:3000
-python -m stonelytics.shell
+%PYTHON% -m stonelytics.shell
 
 pause
