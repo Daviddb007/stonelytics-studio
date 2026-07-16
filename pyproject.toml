@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-studio = "stonelytics.shell:main"
+studio = "stonelytics.shell:app"
 
 [tool.hatch.build.targets.wheel]
 packages = ["stonelytics"]
