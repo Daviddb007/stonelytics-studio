@@ -1,0 +1,19 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "stonelytics-studio"
+version = "0.1.0"
+description = "Stonelytics Studio — IDE for Cognitive Engineering"
+requires-python = ">=3.10"
+dependencies = [
+    "flask>=3.0.0",
+    "srie-runtime>=0.1.0",
+]
+
+[project.scripts]
+studio = "stonelytics.shell:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["stonelytics"]

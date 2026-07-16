@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stonelytics Studio</title>
+<style>
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --surface2: #334155;
+    --text: #e2e8f0; --text2: #94a3b8; --accent: #3b82f6;
+    --green: #22c55e; --amber: #f59e0b; --red: #ef4444;
+    --border: #334155; --radius: 8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+  .layout { display: grid; grid-template-columns: 48px 220px 1fr; height: 100vh; }
+  .activity-bar { background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px; }
+  .activity-bar .icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; cursor: pointer; color: var(--text2); font-size: 16px; }
+  .activity-bar .icon:hover, .activity-bar .icon.active { background: var(--accent); color: #fff; }
+  .sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 16px 0; overflow-y: auto; }
+  .sidebar h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); padding: 0 16px 8px; }
+  .sidebar .item { padding: 6px 16px; font-size: 13px; color: var(--text2); cursor: pointer; display: flex; align-items: center; gap: 8px; }
+  .sidebar .item:hover { background: var(--surface2); color: var(--text); }
+  .sidebar .item .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .sidebar .item .dot.green { background: var(--green); }
+  .sidebar .item .dot.amber { background: var(--amber); }
+  .main { padding: 24px; overflow-y: auto; }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .header h1 { font-size: 22px; font-weight: 600; }
+  .header .badge { padding: 4px 12px; border-radius: 12px; font-size: 12px; background: var(--surface2); color: var(--text2); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .card h4 { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .card .big { font-size: 32px; font-weight: 700; }
+  .card .big.green { color: var(--green); }
+  .card .big.blue { color: var(--accent); }
+  .card p { font-size: 13px; color: var(--text2); margin-top: 4px; }
+  .event { padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; display: flex; gap: 8px; }
+  .event:last-child { border-bottom: none; }
+  .event .ts { color: var(--text2); font-family: monospace; white-space: nowrap; }
+  .event .src { color: var(--accent); }
+  .palette-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; padding-top: 80px; }
+  .palette-overlay.open { display: flex; }
+  .palette { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 600px; max-height: 400px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+  .palette input { width: 100%; padding: 16px 20px; border: none; border-bottom: 1px solid var(--border); background: transparent; color: var(--text); font-size: 16px; outline: none; }
+  .palette .results { padding: 8px 0; max-height: 300px; overflow-y: auto; }
+  .palette .result { padding: 10px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+  .palette .result:hover, .palette .result.selected { background: var(--surface2); }
+  .palette .result .hint { font-size: 11px; color: var(--text2); }
+  .palette .result .action { font-size: 11px; color: var(--accent); }
+  .workspace-entry { margin-bottom: 24px; }
+  .workspace-entry h2 { font-size: 16px; margin-bottom: 12px; }
+  .project-row { display: flex; gap: 12px; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; align-items: center; }
+  .project-row .info { flex: 1; }
+  .project-row .info .name { font-size: 14px; font-weight: 500; }
+  .project-row .info .meta { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .project-row .status-indicator { width: 10px; height: 10px; border-radius: 50%; }
+  .project-row .status-indicator.green { background: var(--green); }
+  .project-row .status-indicator.amber { background: var(--amber); }
+  .project-row .status-indicator.red { background: var(--red); }
+</style>
+</head>
+<body>
+<div class="layout">
+  <div class="activity-bar">
+    <div class="icon active" onclick="switchSection('workspace')" title="Workspace">📁</div>
+    <div class="icon" onclick="switchSection('explorer')" title="Explorer">🔍</div>
+    <div class="icon" onclick="switchSection('runtime')" title="Runtime">⚡</div>
+    <div class="icon" onclick="switchSection('knowledge')" title="Knowledge">🧠</div>
+    <div class="icon" onclick="switchSection('deploy')" title="Deploy">🚀</div>
+  </div>
+  <div class="sidebar" id="sidebar">
+    <h3>Workspace</h3>
+    <div class="item" onclick="openProject('current')"><span class="dot green"></span> Current Project</div>
+    <div class="item" id="sidebar-projects"></div>
+  </div>
+  <div class="main" id="main-content">
+    <div class="header">
+      <h1 id="page-title">Cognitive Workspace</h1>
+      <span class="badge" id="status-badge">Ctrl+K for intentions</span>
+    </div>
+    <div id="content"></div>
+  </div>
+</div>
+
+<div class="palette-overlay" id="palette" onclick="closePalette(event)">
+  <div class="palette" onclick="event.stopPropagation()">
+    <input type="text" id="palette-input" placeholder="What do you want to do?" oninput="searchIntentions()" onkeydown="handlePaletteKey(event)" autofocus>
+    <div class="results" id="palette-results"></div>
+  </div>
+</div>
+
+<script>
+let currentSection = 'workspace';
+let paletteIndex = -1;
+
+const INTENTIONS = [
+  { label: 'Build MVP', keywords: 'build mvp construir producto minimo viable', action: 'orchestrate' },
+  { label: 'Analyze project health', keywords: 'analyze analizar health salud indicadores', action: 'indicators' },
+  { label: 'Discover project structure', keywords: 'discover descubrir escanear scan explorer', action: 'discover' },
+  { label: 'Deploy to production', keywords: 'deploy desplegar production publicar release', action: 'deploy' },
+  { label: 'Repair issues', keywords: 'repair reparar fix arreglar error bug', action: 'repair' },
+  { label: 'Plan execution', keywords: 'plan planner planificar planning workflow', action: 'plan' },
+  { label: 'Show system status', keywords: 'status estado runtime inspect why', action: 'inspect' },
+  { label: 'Show history', keywords: 'history historial timeline eventos events log', action: 'history' },
+  { label: 'Register capability', keywords: 'capability capacidad register registrar', action: 'capability' },
+  { label: 'Create pattern', keywords: 'pattern patron knowledge conocimiento', action: 'pattern' },
+];
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); openPalette(); }
+  if (e.key === 'Escape') closePalette();
+});
+
+function openPalette() {
+  document.getElementById('palette').classList.add('open');
+  document.getElementById('palette-input').value = '';
+  document.getElementById('palette-input').focus();
+  searchIntentions();
+}
+
+function closePalette(e) {
+  if (e && e.target !== document.getElementById('palette-overlay') && !e.target.closest('.palette-overlay')) return;
+  document.getElementById('palette').classList.remove('open');
+}
+
+function searchIntentions() {
+  const q = document.getElementById('palette-input').value.toLowerCase();
+  const results = document.getElementById('palette-results');
+  const filtered = q ? INTENTIONS.filter(i => i.keywords.includes(q)) : INTENTIONS;
+  results.innerHTML = filtered.map((i, idx) =>
+    `<div class="result ${idx === 0 ? 'selected' : ''}" onclick="executeIntention('${i.action}', '${i.label}')" data-idx="${idx}">
+      <span>${i.label}</span>
+      <span class="action">↵ ${i.action}</span>
+    </div>`
+  ).join('');
+  paletteIndex = 0;
+}
+
+function handlePaletteKey(e) {
+  const results = document.getElementById('palette-results');
+  const items = results.querySelectorAll('.result');
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    paletteIndex = Math.min(paletteIndex + 1, items.length - 1);
+    items.forEach((r, i) => r.classList.toggle('selected', i === paletteIndex));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    paletteIndex = Math.max(paletteIndex - 1, 0);
+    items.forEach((r, i) => r.classList.toggle('selected', i === paletteIndex));
+  } else if (e.key === 'Enter') {
+    const selected = results.querySelector('.selected');
+    if (selected) selected.click();
+  }
+}
+
+async function executeIntention(action, label) {
+  closePalette({ target: document.getElementById('palette') });
+  const intention = document.getElementById('palette-input').value || label;
+  const resp = await fetch('/api/sdk/execute_intention', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ intention }),
+  });
+  const data = await resp.json();
+  setContent(`<div class="card"><h4>Intention executed</h4><div class="big blue">${data.action}</div><p>${JSON.stringify(data, null, 2)}</p></div>`);
+}
+
+function switchSection(section) {
+  currentSection = section;
+  document.querySelectorAll('.activity-bar .icon').forEach(i => i.classList.remove('active'));
+  document.querySelector(`.activity-bar .icon:nth-child(${['workspace','explorer','runtime','knowledge','deploy'].indexOf(section) + 1})`).classList.add('active');
+  document.getElementById('page-title').textContent = section.charAt(0).toUpperCase() + section.slice(1);
+  if (section === 'workspace') loadWorkspace();
+  else if (section === 'explorer') loadExplorer();
+  else if (section === 'runtime') loadRuntime();
+  else if (section === 'knowledge') loadKnowledge();
+  else if (section === 'deploy') loadDeploy();
+}
+
+async function loadWorkspace() {
+  setContent('<div class="loading">Loading workspace...</div>');
+  const [identity, manifest, twin, indicators] = await Promise.all([
+    fetchJSON('/api/sdk/identity'), fetchJSON('/api/sdk/manifest'),
+    fetchJSON('/api/sdk/twin'), fetchJSON('/api/sdk/indicators'),
+  ]);
+  setContent(`
+    <div class="grid">
+      <div class="card"><h4>Identity</h4><div class="big blue">${identity.name || 'N/A'}</div><p>${identity.domain_id || ''}</p></div>
+      <div class="card"><h4>Runtime</h4><div class="big ${manifest.state === 'RUNNING' ? 'green' : 'amber'}">${manifest.state || 'N/A'}</div><p>v${manifest.version || '?'}</p></div>
+      <div class="card"><h4>Maturity</h4><div class="big blue">${indicators.maturity || 'L0'}</div><p>Score: ${(indicators.score || 0).toFixed(1)}</p></div>
+      <div class="card"><h4>Twin</h4><div class="big blue">${twin.nodes || 0}</div><p>nodes, ${twin.relationships || 0} relationships</p></div>
+    </div>
+    <div class="workspace-entry"><h2>Current Project</h2>
+      <div class="project-row">
+        <span class="status-indicator green"></span>
+        <div class="info"><div class="name">${identity.name || 'Unknown'}</div><div class="meta">${identity.type} · ${identity.state}</div></div>
+        <span style="font-size:12px;color:var(--text2)">${manifest.modules ? manifest.modules.length : 0} modules</span>
+      </div>
+    </div>
+    <div class="card"><h4>Quick Actions</h4>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn" onclick="executeQuick('analyze')" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer">Analyze</button>
+        <button class="btn" onclick="executeQuick('discover')" style="padding:8px 16px;background:var(--surface2);color:var(--text);border:none;border-radius:6px;cursor:pointer">Discover</button>
+        <button class="btn" onclick="executeQuick('plan')" style="padding:8px 16px;background:var(--surface2);color:var(--text);border:none;border-radius:6px;cursor:pointer">Plan MVP</button>
+        <button class="btn" onclick="openPalette()" style="padding:8px 16px;background:var(--surface2);color:var(--text);border:none;border-radius:6px;cursor:pointer">Ctrl+K</button>
+      </div>
+    </div>
+  `);
+}
+
+async function loadExplorer() {
+  setContent('<div class="loading">Loading explorer...</div>');
+  const data = await fetchJSON('/api/sdk/inspect');
+  setContent(`<div class="card"><h4>System Explorer</h4><div class="tree" style="font-family:monospace;font-size:13px;line-height:1.8">${renderTree(data)}</div></div>`);
+}
+
+async function loadRuntime() {
+  setContent('<div class="loading">Loading runtime...</div>');
+  const [manifest, history] = await Promise.all([fetchJSON('/api/sdk/manifest'), fetchJSON('/api/sdk/history')]);
+  const mods = (manifest.modules || []).map(m => `<span style="padding:2px 8px;border-radius:4px;font-size:11px;background:${m.state === 'LOADED' ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'};color:${m.state === 'LOADED' ? 'var(--green)' : 'var(--red)'}">${m.id}</span>`).join(' ');
+  setContent(`
+    <div class="card" style="margin-bottom:16px"><h4>Modules</h4><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${mods || 'None'}</div></div>
+    <div class="card"><h4>Timeline</h4>
+      ${(history || []).slice(0, 20).map(e => `<div class="event"><span class="ts">[${e.ts}]</span><span class="src">${e.source}</span><span>${e.msg}</span></div>`).join('')}
+    </div>
+  `);
+}
+
+async function loadKnowledge() {
+  const k = await fetchJSON('/api/sdk/knowledge');
+  setContent(`
+    <div class="grid">
+      <div class="card"><h4>Patterns</h4><div class="big blue">${k.patterns || 0}</div></div>
+      <div class="card"><h4>Cases</h4><div class="big blue">${k.cases || 0}</div></div>
+      <div class="card"><h4>Reuse Rate</h4><div class="big blue">${k.reuse || 0}%</div></div>
+    </div>
+  `);
+}
+
+async function loadDeploy() {
+  const caps = await fetchJSON('/api/sdk/capabilities');
+  setContent(`
+    <div class="card"><h4>Capabilities (${caps.length})</h4>
+      ${caps.map(c => `<div class="event"><span class="src">${c.name}</span><span class="ts">${(c.actions || []).join(', ')} · cost: ${c.cost_per_run || 1}</span></div>`).join('')}
+    </div>
+  `);
+}
+
+async function executeQuick(action) {
+  setContent('<div class="loading">Executing...</div>');
+  const resp = await fetch(`/api/sdk/execute_intention`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ intention: action }),
+  });
+  const data = await resp.json();
+  loadWorkspace();
+}
+
+function setContent(html) { document.getElementById('content').innerHTML = html; }
+
+async function fetchJSON(url) {
+  const r = await fetch(url);
+  return r.json();
+}
+
+function renderTree(node, depth = 0) {
+  if (!node) return '';
+  let html = '<div style="padding-left:' + (depth * 20) + 'px">';
+  html += '<span style="color:var(--text)">' + (node.label || '') + '</span>';
+  if (node.value) html += ' <span style="color:var(--text2)">[' + node.value + ']</span>';
+  html += '</div>';
+  if (node.children) node.children.forEach(c => { html += renderTree(c, depth + 1); });
+  return html;
+}
+
+function openProject(id) { loadWorkspace(); }
+
+loadWorkspace();
+</script>
+</body>
+</html>
