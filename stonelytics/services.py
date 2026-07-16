@@ -174,8 +174,16 @@ class StudioService:
 
     # === Internal engine factories (thin wrappers, not module imports) ===
     def _plan_engine(self):
-        from srie.modules.planner.planner import PlannerEngine
-        return PlannerEngine(self._path)
+        import importlib.util
+        import srie
+        srie_root = Path(srie.__file__).parent
+        engine_path = srie_root / "modules" / "planner" / "engine.py"
+        spec = importlib.util.spec_from_file_location("planner_engine", engine_path)
+        if spec and spec.loader:
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            return mod.PlannerEngine(self._path)
+        raise ImportError(f"Planner module not found at {engine_path}")
 
     def _cap_engine(self):
         from srie.kernel.capability import CapabilityEngine

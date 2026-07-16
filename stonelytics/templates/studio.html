@@ -3,352 +3,263 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stonelytics Studio</title>
+<title>Stonelytics Studio — Cognitive Workbench</title>
 <style>
   :root {
     --bg: #0f172a; --surface: #1e293b; --surface2: #334155; --surface3: #1a2332;
-    --text: #e2e8f0; --text2: #94a3b8; --accent: #3b82f6; --accent2: #2563eb;
+    --text: #e2e8f0; --text2: #94a3b8; --accent: #3b82f6;
     --green: #22c55e; --amber: #f59e0b; --red: #ef4444; --border: #334155;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 
-  /* Shell Layout */
-  .shell { display: grid; grid-template-columns: 48px 240px 1fr; height: 100vh; }
+  .shell { display: grid; grid-template-columns: 48px 1fr; height: 100vh; }
 
-  /* Activity Bar */
   .activity-bar { background: var(--surface3); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 4px; }
   .activity-bar .a-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; color: var(--text2); font-size: 16px; border: none; background: none; }
   .activity-bar .a-btn:hover { background: var(--surface2); color: var(--text); }
   .activity-bar .a-btn.active { background: var(--accent); color: #fff; }
-  .activity-bar .spacer { flex: 1; }
-  .activity-bar .bottom { margin-top: auto; padding-bottom: 12px; }
+  .activity-bar .bottom { margin-top: auto; }
 
-  /* Sidebar = Entity Navigator */
-  .sidebar { background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
-  .sidebar .header { padding: 16px; border-bottom: 1px solid var(--border); }
-  .sidebar .header h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); }
-  .sidebar .header .bread { font-size: 11px; color: var(--text2); margin-top: 4px; }
-  .sidebar .nav { flex: 1; overflow-y: auto; padding: 8px 0; }
-  .sidebar .entity { padding: 8px 16px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text2); border-left: 3px solid transparent; }
-  .sidebar .entity:hover { background: var(--surface2); color: var(--text); }
-  .sidebar .entity.active { border-left-color: var(--accent); color: var(--accent); background: rgba(59,130,246,0.08); }
-  .sidebar .entity .icon { width: 20px; text-align: center; }
-  .sidebar .entity .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .sidebar .entity .status-dot.green { background: var(--green); }
-  .sidebar .entity .status-dot.amber { background: var(--amber); }
-  .sidebar .entity .status-dot.red { background: var(--red); }
-  .sidebar .entity .count { margin-left: auto; font-size: 11px; background: var(--surface2); padding: 1px 6px; border-radius: 8px; }
+  .workbench { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-  /* Main = Content Area */
-  .main { display: flex; flex-direction: column; overflow: hidden; }
-  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; border-bottom: 1px solid var(--border); background: var(--surface3); }
-  .topbar .location { font-size: 14px; font-weight: 500; }
-  .topbar .location span { color: var(--text2); margin: 0 4px; }
-  .topbar .actions { display: flex; gap: 8px; }
-  .topbar .actions button { padding: 6px 14px; border-radius: 6px; border: none; font-size: 12px; cursor: pointer; }
-  .topbar .actions .primary { background: var(--accent); color: #fff; }
-  .topbar .actions .secondary { background: var(--surface2); color: var(--text); }
-  .topbar .status-badge { font-size: 11px; padding: 3px 10px; border-radius: 10px; background: var(--surface2); color: var(--text2); }
+  /* Top Bar */
+  .topbar { display: flex; align-items: center; gap: 12px; padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .topbar .brand { font-size: 14px; font-weight: 600; color: var(--accent); }
+  .topbar .status { font-size: 11px; padding: 3px 10px; border-radius: 10px; background: var(--surface2); color: var(--text2); margin-left: auto; }
+  .topbar .runtime-badge { font-size: 11px; padding: 3px 10px; border-radius: 10px; }
+  .topbar .runtime-badge.running { background: rgba(34,197,94,0.2); color: var(--green); }
+  .topbar .runtime-badge.stopped { background: rgba(239,68,68,0.2); color: var(--red); }
 
-  .content { flex: 1; overflow-y: auto; padding: 24px; }
+  /* Main: conversation area */
+  .conversation { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 8px; }
 
-  /* Cards */
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 20px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
-  .card h4 { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-  .card .value { font-size: 28px; font-weight: 700; }
-  .card .value.green { color: var(--green); }
-  .card .value.blue { color: var(--accent); }
-  .card .value.amber { color: var(--amber); }
-  .card p { font-size: 13px; color: var(--text2); margin-top: 2px; }
-  .card .map { margin-top: 8px; }
-  .card .map .row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; border-bottom: 1px solid var(--border); }
-  .card .map .row:last-child { border-bottom: none; }
-  .card .map .row .lbl { color: var(--text2); }
-  .card .map .row .val { color: var(--text); }
+  .message { padding: 12px 16px; border-radius: 10px; max-width: 85%; animation: fadeIn 0.3s ease; }
+  .message.user { background: var(--accent); color: #fff; align-self: flex-end; }
+  .message.system { background: var(--surface); border: 1px solid var(--border); align-self: flex-start; }
+  .message.system .header { display: flex; justify-content: space-between; font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+  .message.system .status { font-weight: 500; }
+  .message.system .status.running { color: var(--accent); }
+  .message.system .status.complete { color: var(--green); }
+  .message.system .status.error { color: var(--red); }
+  .message.system .status.warning { color: var(--amber); }
+  .message.system .status.blocked { color: var(--amber); }
+  .message.system .detail { font-size: 13px; line-height: 1.4; }
+  .message.system .detail .label { color: var(--text2); }
 
-  /* Events */
-  .event { padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; display: flex; gap: 8px; }
-  .event:last-child { border-bottom: none; }
-  .event .ts { color: var(--text2); font-family: monospace; white-space: nowrap; }
-  .event .src { color: var(--accent); }
+  .thinking { display: flex; align-items: center; gap: 8px; padding: 8px 16px; color: var(--text2); font-size: 13px; }
+  .thinking .dots { display: flex; gap: 4px; }
+  .thinking .dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: bounce 1.4s infinite; }
+  .thinking .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .thinking .dots span:nth-child(3) { animation-delay: 0.4s; }
 
-  /* Command Palette */
-  .palette-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; padding-top: 80px; backdrop-filter: blur(4px); }
-  .palette-overlay.open { display: flex; }
-  .palette { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 620px; max-height: 420px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.6); }
-  .palette input { width: 100%; padding: 16px 20px; border: none; border-bottom: 1px solid var(--border); background: transparent; color: var(--text); font-size: 16px; outline: none; }
-  .palette .results { padding: 4px 0; max-height: 320px; overflow-y: auto; }
-  .palette .result { padding: 10px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-  .palette .result:hover, .palette .result.selected { background: var(--surface2); }
-  .palette .result .hint { font-size: 11px; color: var(--text2); }
-  .palette .result .action { font-size: 11px; color: var(--accent); }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes bounce { 0%, 80%, 100% { transform: scale(0.6); } 40% { transform: scale(1); } }
 
-  /* Entity row (for project lists) */
-  .entity-row { display: flex; gap: 12px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; align-items: center; cursor: pointer; }
-  .entity-row:hover { border-color: var(--accent); }
-  .entity-row .info { flex: 1; }
-  .entity-row .info .name { font-size: 14px; font-weight: 500; }
-  .entity-row .info .meta { font-size: 11px; color: var(--text2); margin-top: 2px; }
-  .entity-row .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  /* Input Area */
+  .input-area { padding: 12px 20px 16px; border-top: 1px solid var(--border); background: var(--surface); }
+  .input-row { display: flex; gap: 8px; align-items: center; }
+  .input-row input { flex: 1; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--text); font-size: 14px; outline: none; }
+  .input-row input:focus { border-color: var(--accent); }
+  .input-row input::placeholder { color: var(--text2); }
+  .input-row button { padding: 12px 24px; background: var(--accent); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; white-space: nowrap; }
+  .input-row button:hover { opacity: 0.9; }
+  .input-row button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .input-hint { font-size: 11px; color: var(--text2); margin-top: 6px; text-align: center; }
 
-  .loading { text-align: center; padding: 60px; color: var(--text2); }
+  /* Result Cards */
+  .result-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; margin-top: 8px; }
+  .result-card { background: var(--surface2); border-radius: 6px; padding: 10px; }
+  .result-card .rlabel { font-size: 10px; color: var(--text2); text-transform: uppercase; }
+  .result-card .rvalue { font-size: 18px; font-weight: 600; margin-top: 2px; }
+  .result-card .rvalue.green { color: var(--green); }
+  .result-card .rvalue.blue { color: var(--accent); }
+
+  .execution-steps { margin-top: 8px; }
+  .execution-steps .estep { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px; }
+  .execution-steps .estep .icon { width: 16px; text-align: center; }
 </style>
 </head>
 <body>
 <div class="shell">
-  <!-- Activity Bar -->
   <div class="activity-bar">
-    <button class="a-btn active" onclick="navigateTo('workspace')" title="Workspace">🏠</button>
-    <button class="a-btn" onclick="navigateTo('explorer')" title="Explorer">🔍</button>
-    <button class="a-btn" onclick="navigateTo('mission')" title="Mission Control">🎛️</button>
-    <button class="a-btn" onclick="navigateTo('timeline')" title="Timeline">📋</button>
-    <button class="a-btn" onclick="navigateTo('knowledge')" title="Knowledge">🧠</button>
-    <div class="spacer"></div>
-    <button class="a-btn bottom" onclick="openPalette()" title="Command Palette (Ctrl+K)">⌨️</button>
+    <button class="a-btn active" onclick="resetWorkbench()" title="Cognitive Workbench">💡</button>
+    <button class="a-btn" onclick="switchView('runtime')" title="Runtime">⚡</button>
+    <button class="a-btn" onclick="switchView('knowledge')" title="Knowledge">🧠</button>
+    <button class="a-btn" onclick="switchView('timeline')" title="Timeline">📋</button>
+    <div class="bottom"><button class="a-btn" onclick="showShortcuts()" title="Shortcuts">?</button></div>
   </div>
 
-  <!-- Sidebar = Entity Navigator -->
-  <div class="sidebar" id="sidebar">
-    <div class="header">
-      <h2 id="entity-title">Workspace</h2>
-      <div class="bread" id="entity-bread">Universe / Organization / Workspace</div>
-    </div>
-    <div class="nav" id="entity-nav"></div>
-  </div>
-
-  <!-- Main Content -->
-  <div class="main">
+  <div class="workbench" id="workbench">
     <div class="topbar">
-      <div class="location"><span id="location-icon">🏠</span> <span id="location-path">Workspace</span></div>
-      <div class="actions">
-        <button class="secondary" onclick="openPalette()">Ctrl+K</button>
-        <button class="primary" id="action-btn" onclick="actionButton()">Analyze</button>
-      </div>
-      <span class="status-badge" id="status-badge">Runtime: --</span>
+      <span class="brand">Stonelytics Studio</span>
+      <span style="font-size:12px;color:var(--text2)" id="project-name">Loading...</span>
+      <span class="runtime-badge" id="runtime-badge">Runtime: --</span>
+      <span class="status" id="status-text">Ready</span>
     </div>
-    <div class="content" id="content">
-      <div class="loading">Loading Workspace...</div>
-    </div>
-  </div>
-</div>
 
-<!-- Command Palette -->
-<div class="palette-overlay" id="palette" onclick="closePalette(event)">
-  <div class="palette" onclick="event.stopPropagation()">
-    <input type="text" id="palette-input" placeholder="What do you want to do?" oninput="searchIntentions()" onkeydown="handlePaletteKey(event)" autofocus>
-    <div class="results" id="palette-results"></div>
+    <div class="conversation" id="conversation">
+      <div class="message system">
+        <div class="header"><span>Stonelytics Studio</span><span class="status complete">Ready</span></div>
+        <div class="detail">Welcome to the Cognitive Workbench. Tell me what you want to build or analyze.</div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-row">
+        <input type="text" id="intention-input" placeholder="What do you want to do? (e.g., Build a SaaS for lawyers, Analyze this project, Deploy to production)" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();submitIntention()}">
+        <button id="submit-btn" onclick="submitIntention()">Execute</button>
+      </div>
+      <div class="input-hint">Describe your goal — the Conductor will plan and execute the work</div>
+    </div>
   </div>
 </div>
 
 <script>
-// === State ===
-let currentView = 'workspace';
-let paletteIndex = -1;
-let shellData = null;
+let isExecuting = false;
 
-const INTENTIONS = [
-  { label: 'Build MVP', kw: 'build mvp construir crear producto', action: 'orchestrate' },
-  { label: 'Analyze project health', kw: 'analyze analizar health salud indicadores', action: 'indicators' },
-  { label: 'Discover project structure', kw: 'discover descubrir escanear scan', action: 'discover' },
-  { label: 'Deploy to production', kw: 'deploy desplegar publicar release', action: 'deploy' },
-  { label: 'Repair issues', kw: 'repair reparar fix arreglar error', action: 'repair' },
-  { label: 'Plan execution', kw: 'plan planificar planning workflow', action: 'plan' },
-  { label: 'Pause runtime', kw: 'pause pausar suspender detener', action: 'pause' },
-  { label: 'Resume runtime', kw: 'resume reanudar continuar', action: 'resume' },
-  { label: 'Show system status', kw: 'status estado runtime inspect', action: 'inspect' },
-  { label: 'Show timeline', kw: 'history historial timeline eventos', action: 'history' },
-];
+async function submitIntention() {
+  const input = document.getElementById('intention-input');
+  const text = input.value.trim();
+  if (!text || isExecuting) return;
 
-// === Keyboard Shortcuts ===
-document.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); openPalette(); }
-  if (e.key === 'Escape') closePalette();
-});
+  isExecuting = true;
+  input.value = '';
+  document.getElementById('submit-btn').disabled = true;
+  document.getElementById('submit-btn').textContent = 'Working...';
 
-// === Palette ===
-function openPalette() {
-  document.getElementById('palette').classList.add('open');
-  document.getElementById('palette-input').value = '';
-  document.getElementById('palette-input').focus();
-  searchIntentions();
-}
-function closePalette(e) { if (e && e.target !== document.getElementById('palette') && !e.target.closest('.palette')) return; document.getElementById('palette').classList.remove('open'); }
+  addMessage('user', text);
+  addThinking();
 
-function searchIntentions() {
-  const q = document.getElementById('palette-input').value.toLowerCase();
-  const results = document.getElementById('palette-results');
-  const filtered = q ? INTENTIONS.filter(i => i.kw.includes(q)) : INTENTIONS;
-  results.innerHTML = filtered.map((i, idx) =>
-    `<div class="result ${idx === 0 ? 'selected' : ''}" onclick="executeIntention('${i.action}')" data-idx="${idx}">
-      <span>${i.label}</span>
-      <span class="action">↵ ${i.action}</span>
-    </div>`
-  ).join('');
-  paletteIndex = 0;
+  try {
+    const resp = await fetch('/api/shell/conductor', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({intention: text}),
+    });
+    const data = await resp.json();
+    removeThinking();
+    displayResult(data);
+  } catch (e) {
+    removeThinking();
+    addMessage('system', `<div class="detail" style="color:var(--red)">Error: ${e.message}</div>`);
+  }
+
+  isExecuting = false;
+  document.getElementById('submit-btn').disabled = false;
+  document.getElementById('submit-btn').textContent = 'Execute';
+  scrollToBottom();
 }
 
-function handlePaletteKey(e) {
-  const items = document.querySelectorAll('#palette-results .result');
-  if (e.key === 'ArrowDown') { e.preventDefault(); paletteIndex = Math.min(paletteIndex + 1, items.length - 1); items.forEach((r, i) => r.classList.toggle('selected', i === paletteIndex)); }
-  else if (e.key === 'ArrowUp') { e.preventDefault(); paletteIndex = Math.max(paletteIndex - 1, 0); items.forEach((r, i) => r.classList.toggle('selected', i === paletteIndex)); }
-  else if (e.key === 'Enter') { const sel = document.querySelector('#palette-results .selected'); if (sel) sel.click(); }
+function addMessage(type, content) {
+  const conv = document.getElementById('conversation');
+  const msg = document.createElement('div');
+  msg.className = `message ${type}`;
+  if (type === 'user') {
+    msg.textContent = content;
+  }
+  conv.appendChild(msg);
+  scrollToBottom();
 }
 
-async function executeIntention(action) {
-  closePalette({ target: document.getElementById('palette') });
-  const text = document.getElementById('palette-input').value || action;
-  setContent('<div class="loading">Executing...</div>');
-  const resp = await fetch('/api/shell/intention', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({intention: text}) });
-  const data = await resp.json();
-  loadWorkspace();
+function addThinking() {
+  const conv = document.getElementById('conversation');
+  const div = document.createElement('div');
+  div.className = 'thinking';
+  div.id = 'thinking';
+  div.innerHTML = '<span>Thinking</span><div class="dots"><span></span><span></span><span></span></div>';
+  conv.appendChild(div);
+  scrollToBottom();
 }
 
-// === Navigation ===
-function navigateTo(view) {
-  currentView = view;
+function removeThinking() {
+  const t = document.getElementById('thinking');
+  if (t) t.remove();
+}
+
+function displayResult(data) {
+  const conv = document.getElementById('conversation');
+
+  // Summary message
+  const summary = document.createElement('div');
+  summary.className = 'message system';
+  const statusClass = data.status === 'complete' ? 'complete' : 'error';
+  summary.innerHTML = `<div class="header"><span>Conductor</span><span class="status ${statusClass}">${data.status.toUpperCase()} — ${data.duration_seconds}s</span></div>`;
+  summary.innerHTML += `<div class="detail">Executed: <strong>${data.intention}</strong></div>`;
+  conv.appendChild(summary);
+
+  // Steps as execution chain
+  const stepsDiv = document.createElement('div');
+  stepsDiv.className = 'message system';
+  stepsDiv.style.marginTop = '4px';
+  let stepsHtml = '<div class="header"><span>Execution Steps</span></div><div class="execution-steps">';
+  data.steps.forEach(s => {
+    const icons = {running: '⏳', complete: '✅', error: '❌', warning: '⚠️', blocked: '🔒'};
+    stepsHtml += `<div class="estep"><span class="icon">${icons[s.status] || '⬜'}</span><span>${s.name}</span><span style="color:var(--text2);font-size:11px;margin-left:auto">${s.detail || ''}</span></div>`;
+  });
+  stepsHtml += '</div>';
+  stepsDiv.innerHTML = stepsHtml;
+  conv.appendChild(stepsDiv);
+
+  // Result metrics if available
+  const lastStep = data.steps[data.steps.length - 1];
+  if (lastStep && lastStep.detail) {
+    const result = document.createElement('div');
+    result.className = 'message system';
+    result.innerHTML = `<div class="header"><span>Result</span></div><div class="detail">${lastStep.detail}</div>`;
+    conv.appendChild(result);
+  }
+
+  scrollToBottom();
+}
+
+function scrollToBottom() {
+  const conv = document.getElementById('conversation');
+  setTimeout(() => { conv.scrollTop = conv.scrollHeight; }, 50);
+}
+
+function resetWorkbench() {
+  document.getElementById('conversation').innerHTML = `
+    <div class="message system">
+      <div class="header"><span>Stonelytics Studio</span><span class="status complete">Ready</span></div>
+      <div class="detail">Welcome to the Cognitive Workbench. Tell me what you want to build or analyze.</div>
+    </div>`;
+  document.getElementById('intention-input').value = '';
+  document.getElementById('status-text').textContent = 'Ready';
+}
+
+function switchView(view) {
   document.querySelectorAll('.a-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.a-btn')[['workspace','explorer','mission','timeline','knowledge','palette'].indexOf(view)].classList.add('active');
-  document.getElementById('location-path').textContent = view.charAt(0).toUpperCase() + view.slice(1);
-  document.getElementById('action-btn').textContent = view === 'workspace' ? 'Analyze' : view === 'mission' ? 'Inspect' : 'Action';
-  if (view === 'workspace') loadWorkspace();
-  else if (view === 'explorer') loadExplorer();
-  else if (view === 'mission') loadMission();
-  else if (view === 'timeline') loadTimeline();
-  else if (view === 'knowledge') loadKnowledge();
+  const idx = {runtime:1, knowledge:2, timeline:3}[view] || 0;
+  document.querySelectorAll('.a-btn')[idx].classList.add('active');
+  document.getElementById('status-text').textContent = `View: ${view}`;
 }
 
-function actionButton() {
-  if (currentView === 'workspace') executeIntention('analyze');
-  else if (currentView === 'mission') executeIntention('inspect');
-  else openPalette();
+function showShortcuts() {
+  const conv = document.getElementById('conversation');
+  conv.innerHTML += `<div class="message system"><div class="header"><span>Shortcuts</span></div><div class="detail">
+    • Type any goal and press Enter to execute<br>
+    • "Build a SaaS for lawyers" → full pipeline<br>
+    • "Analyze this project" → discovery + indicators<br>
+    • "Deploy to production" → deployment<br>
+    • "Fix issues" → auto-repair<br>
+    • Click 💡 to reset the workbench
+  </div></div>`;
+  scrollToBottom();
 }
 
-// === Data Loading ===
-async function loadWorkspace() {
-  setContent('<div class="loading">Loading workspace...</div>');
-  const data = await fetchJSON('/api/shell/workspace');
-  shellData = data;
-  document.getElementById('status-badge').textContent = `Runtime: ${data.manifest.state || '--'}`;
-  renderEntityNav(data);
-  const id = data.identity || {}, mf = data.manifest || {}, tw = data.twin || {}, ind = data.indicators || {}, age = data.age || {};
-  setContent(`
-    <div class="grid">
-      <div class="card"><h4>Identity</h4><div class="value blue">${id.name || 'N/A'}</div><p>${id.domain_id || ''}</p></div>
-      <div class="card"><h4>Runtime</h4><div class="value ${mf.state === 'RUNNING' ? 'green' : 'amber'}">${mf.state || 'N/A'}</div><p>v${mf.version || '?'} · ${age.checkpoints || 0} checkpoints</p></div>
-      <div class="card"><h4>Maturity</h4><div class="value blue">${ind.maturity || 'L0'}</div><p>Score: ${(ind.score || 0).toFixed(1)}</p></div>
-      <div class="card"><h4>Digital Twin</h4><div class="value blue">${tw.nodes || 0}</div><p>nodes · ${tw.relationships || 0} relationships</p></div>
-    </div>
-    <div class="card"><h4>Quick Actions</h4>
-      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-        <button onclick="executeIntention('analyze')" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer">Analyze</button>
-        <button onclick="executeIntention('discover')" style="padding:8px 16px;background:var(--surface2);color:var(--text);border:none;border-radius:6px;cursor:pointer">Discover</button>
-        <button onclick="executeIntention('build mvp')" style="padding:8px 16px;background:var(--surface2);color:var(--text);border:none;border-radius:6px;cursor:pointer">Build MVP</button>
-        <button onclick="executeIntention('deploy')" style="padding:8px 16px;background:var(--surface2);color:var(--text);border:none;border-radius:6px;cursor:pointer">Deploy</button>
-        <button onclick="openPalette()" style="padding:8px 16px;background:var(--surface2);color:var(--text);border:none;border-radius:6px;cursor:pointer">Ctrl+K</button>
-      </div>
-    </div>
-    <div class="card" style="margin-top:16px"><h4>Project DNA</h4>
-      <div class="map">
-        <div class="row"><span class="lbl">Name</span><span class="val">${id.name || 'N/A'}</span></div>
-        <div class="row"><span class="lbl">Type</span><span class="val">${id.type || 'N/A'}</span></div>
-        <div class="row"><span class="lbl">State</span><span class="val">${id.state || 'N/A'}</span></div>
-        <div class="row"><span class="lbl">Maturity</span><span class="val">${ind.maturity || 'L0'}</span></div>
-        <div class="row"><span class="lbl">Score</span><span class="val">${(ind.score || 0).toFixed(1)}</span></div>
-        <div class="row"><span class="lbl">Modules</span><span class="val">${(mf.modules || []).length}</span></div>
-        <div class="row"><span class="lbl">Checkpoints</span><span class="val">${age.checkpoints || 0}</span></div>
-      </div>
-    </div>
-  `);
-}
-
-async function loadExplorer() {
-  setContent('<div class="loading">Loading explorer...</div>');
-  const data = await fetchJSON('/api/shell/inspect');
-  setContent(`<div class="card"><h4>System Explorer</h4><div class="tree" style="font-family:monospace;font-size:13px;line-height:1.8;margin-top:8px">${renderTree(data)}</div></div>`);
-}
-
-async function loadMission() {
-  setContent('<div class="loading">Loading mission control...</div>');
-  const [manifest, history, age, caps] = await Promise.all([
-    fetchJSON('/api/shell/manifest'), fetchJSON('/api/shell/history'),
-    fetchJSON('/api/shell/age'), fetchJSON('/api/shell/capabilities'),
-  ]);
-  const mods = (manifest.modules || []).map(m =>
-    `<span style="padding:2px 8px;border-radius:4px;font-size:11px;background:${m.state === 'LOADED' ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'};color:${m.state === 'LOADED' ? 'var(--green)' : 'var(--red)'}">${m.id}</span>`
-  ).join(' ');
-  setContent(`
-    <div class="grid">
-      <div class="card"><h4>Runtime</h4><div class="value ${manifest.state === 'RUNNING' ? 'green' : 'amber'}">${manifest.state}</div><p>v${manifest.version}</p></div>
-      <div class="card"><h4>Modules</h4><div class="value blue">${(manifest.modules || []).length}</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">${mods}</div></div>
-      <div class="card"><h4>Capabilities</h4><div class="value blue">${(caps || []).length}</div></div>
-      <div class="card"><h4>Checkpoints</h4><div class="value blue">${age.checkpoints || 0}</div></div>
-    </div>
-    <div class="card" style="margin-top:16px"><h4>Recent Events</h4>
-      ${(history || []).slice(0, 15).map(e => `<div class="event"><span class="ts">[${e.ts}]</span><span class="src">${e.source}</span><span>${e.msg}</span></div>`).join('')}
-    </div>
-  `);
-}
-
-async function loadTimeline() {
-  const history = await fetchJSON('/api/shell/history?limit=100');
-  setContent(`<div class="card"><h4>Timeline (${history.length} events)</h4>
-    ${(history || []).map(e => `<div class="event"><span class="ts">[${e.ts}]</span><span class="src">${e.source}</span><span>${e.msg}</span></div>`).join('')}
-  </div>`);
-}
-
-async function loadKnowledge() {
-  const k = await fetchJSON('/api/shell/knowledge');
-  const caps = await fetchJSON('/api/shell/capabilities');
-  setContent(`
-    <div class="grid">
-      <div class="card"><h4>Patterns</h4><div class="value blue">${k.patterns || 0}</div></div>
-      <div class="card"><h4>Cases</h4><div class="value blue">${k.cases || 0}</div></div>
-      <div class="card"><h4>Reuse</h4><div class="value blue">${k.reuse || 0}%</div></div>
-      <div class="card"><h4>Capabilities</h4><div class="value blue">${(caps || []).length}</div></div>
-    </div>
-    <div class="card" style="margin-top:16px"><h4>Capabilities</h4>
-      ${(caps || []).map(c => `<div class="event"><span class="src">${c.name}</span><span class="ts">${(c.actions||[]).join(', ')} · cost: ${c.cost_per_run||1}</span></div>`).join('')}
-    </div>
-  `);
-}
-
-// === Entity Navigator ===
-function renderEntityNav(data) {
-  const id = data.identity || {};
-  const nav = document.getElementById('entity-nav');
-  document.getElementById('entity-title').textContent = `Workspace: ${id.name || 'N/A'}`;
-  document.getElementById('entity-bread').textContent = `Universe / Organization / ${id.name || 'Project'}`;
-  nav.innerHTML = `
-    <div class="entity active"><span class="icon">🌐</span> Universe <span class="status-dot green"></span></div>
-    <div class="entity" style="padding-left:32px"><span class="icon">🏢</span> Organization <span class="count">1</span></div>
-    <div class="entity" style="padding-left:48px"><span class="icon">📁</span> Workspace <span class="count">1</span></div>
-    <div class="entity" style="padding-left:64px"><span class="icon">📦</span> ${id.name || 'Project'} <span class="status-dot ${data.manifest.state === 'RUNNING' ? 'green' : 'amber'}"></span></div>
-    <div class="entity" style="padding-left:80px"><span class="icon">⚡</span> Runtime <span class="status-dot ${data.manifest.state === 'RUNNING' ? 'green' : 'amber'}"></span></div>
-    <div class="entity" style="padding-left:80px"><span class="icon">🧠</span> Knowledge <span class="count">${data.twin.nodes || 0} nodes</span></div>
-    <div class="entity" style="padding-left:80px"><span class="icon">📊</span> Maturity <span class="count">${data.indicators.maturity || 'L0'}</span></div>
-    <div class="entity" style="padding-left:80px"><span class="icon">📋</span> Timeline</div>
-    <div class="entity" style="padding-left:80px"><span class="icon">🚀</span> Deployment</div>
-  `;
-}
-
-// === Utilities ===
-function setContent(html) { document.getElementById('content').innerHTML = html; }
-async function fetchJSON(url) { const r = await fetch(url); return r.json(); }
-
-function renderTree(node, depth = 0) {
-  if (!node) return '';
-  let html = '<div style="padding-left:' + (depth * 20) + 'px;padding-top:2px">';
-  html += '<span style="color:var(--text)">' + (node.label || '') + '</span>';
-  if (node.value) html += ' <span style="color:var(--text2)">[' + node.value + ']</span>';
-  html += '</div>';
-  if (node.children) node.children.forEach(c => { html += renderTree(c, depth + 1); });
-  return html;
-}
-
-// === Boot ===
-loadWorkspace();
+// Load identity on boot
+(async function() {
+  try {
+    const resp = await fetch('/api/shell/workspace');
+    const data = await resp.json();
+    document.getElementById('project-name').textContent = data.identity?.name || 'Unknown';
+    const state = data.manifest?.state || 'STOPPED';
+    const badge = document.getElementById('runtime-badge');
+    badge.textContent = `Runtime: ${state}`;
+    badge.className = `runtime-badge ${state === 'RUNNING' ? 'running' : 'stopped'}`;
+  } catch(e) {}
+})();
 </script>
 </body>
 </html>

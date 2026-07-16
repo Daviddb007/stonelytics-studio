@@ -99,6 +99,14 @@ def api_intention():
     data = request.get_json()
     return jsonify(get_svc().execute_intention(data.get("intention", "")))
 
+@app.route("/api/shell/conductor", methods=["POST"])
+def api_conductor():
+    from stonelytics.conductor import Conductor
+    data = request.get_json()
+    c = Conductor(get_svc().path)
+    result = c.execute(data.get("intention", ""))
+    return jsonify(result)
+
 @app.route("/api/shell/workspace")
 def api_workspace():
     svc = get_svc()
