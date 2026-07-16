@@ -104,6 +104,29 @@ def api_knowledge_cases():
     k = KnowledgeEngine(get_svc().path)
     return jsonify(k.list_cases())
 
+@app.route("/api/shell/deployments")
+def api_deployments():
+    svc = get_svc()
+    targets = svc.list_targets()
+    return jsonify({"targets": targets, "total": len(targets)})
+
+@app.route("/api/shell/deploy/run", methods=["POST"])
+def api_deploy_run():
+    data = request.get_json()
+    return jsonify(get_svc().deploy(data.get("target_id", ""), data.get("version", "1.0.0")))
+
+@app.route("/api/shell/deploy/target", methods=["POST"])
+def api_deploy_target():
+    data = request.get_json()
+    return jsonify(get_svc().register_target(data.get("name", "target"), data.get("env", "production"), data.get("url", "")))
+
+@app.route("/api/shell/deploy/rollback", methods=["POST"])
+def api_deploy_rollback():
+    from srie.services.deployment import Deployment
+    data = request.get_json()
+    d = Deployment(get_svc().path)
+    return jsonify(d.rollback(data.get("target_id", "")))
+
 @app.route("/api/shell/deploy")
 def api_deploy():
     return jsonify(get_svc().deploy())

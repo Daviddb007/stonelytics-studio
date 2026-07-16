@@ -93,6 +93,7 @@
     <button class="a-btn" onclick="switchView('knowledge')" title="Knowledge">🧠</button>
     <button class="a-btn" onclick="switchView('knowledge')" title="Knowledge">🧠</button>
     <button class="a-btn" onclick="switchView('timeline')" title="Timeline">📋</button>
+    <button class="a-btn" onclick="switchView('deploy')" title="Deployment">🚀</button>
     <div class="bottom"><button class="a-btn" onclick="showShortcuts()" title="Shortcuts">?</button></div>
   </div>
 
@@ -241,6 +242,7 @@ function switchView(view) {
   if (view === 'runtime') btns[1].classList.add('active');
   else if (view === 'knowledge') btns[2].classList.add('active');
   else if (view === 'timeline') btns[3].classList.add('active');
+  else if (view === 'deploy') btns[4].classList.add('active');
   else btns[0].classList.add('active');
   document.getElementById('status-text').textContent = `View: ${view}`;
 
@@ -254,6 +256,9 @@ function switchView(view) {
   } else if (view === 'timeline') {
     conv.innerHTML = `<div class="message system"><div class="header"><span>Timeline</span><span class="status complete">Loaded</span></div><div class="detail">Loading event history...</div></div>`;
     loadTimelineView();
+  } else if (view === 'deploy') {
+    conv.innerHTML = `<div class="message system"><div class="header"><span>Deployment Center</span><span class="status complete">Loaded</span></div><div class="detail">Loading deployment targets...</div></div>`;
+    loadDeploymentCenter();
   }
 }
 
@@ -328,6 +333,75 @@ async function loadRuntimeExplorer() {
   } catch(e) {
     conv.innerHTML = `<div class="message system"><div class="detail" style="color:var(--red)">${e.message}</div></div>`;
   }
+}
+
+async function loadDeploymentCenter() {
+  const conv = document.getElementById('conversation');
+  try {
+    const data = await fetchJSON('/api/shell/deployments');
+    let html = `<div class="message system"><div class="header"><span>Deployment Targets</span><span class="status complete">${data.total || 0} targets</span></div></div>`;
+
+    if (data.targets && data.targets.length > 0) {
+      data.targets.forEach(t => {
+        const deploys = t.deployments || [];
+        const lastVer = deploys.length > 0 ? `v${deploys[deploys.length-1]}` : 'none';
+        html += `<div class="message system"><div class="header"><span>${t.name}</span><span class="status ${t.state === 'ACTIVE' ? 'complete' : 'complete'}">${t.environment}</span></div>
+          <div class="detail">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+              <span style="font-size:11px;padding:3px 8px;border-radius:4px;background:var(--surface2)">ID: ${t.id}</span>
+              <span style="font-size:11px;padding:3px 8px;border-radius:4px;background:var(--surface2)">Deployments: ${deploys.length}</span>
+              <span style="font-size:11px;padding:3px 8px;border-radius:4px;background:var(--surface2)">URL: ${t.url || '—'}</span>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button onclick="deployTo('${t.id}')" style="padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Deploy v1.0.0</button>
+              <button onclick="rollbackTo('${t.id}')" style="padding:6px 14px;background:var(--amber);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Rollback</button>
+            </div>
+          </div></div>`;
+      });
+    } else {
+      html += `<div class="message system"><div class="header"><span>No targets</span></div><div class="detail">
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input type="text" id="new-target-name" placeholder="Target name" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:13px;flex:1">
+          <input type="text" id="new-target-env" placeholder="environment" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:13px;width:120px">
+          <button onclick="registerTarget()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer">Register</button>
+        </div>
+      </div></div>`;
+    }
+
+    conv.innerHTML = html;
+    scrollToBottom();
+  } catch(e) {
+    conv.innerHTML = `<div class="message system"><div class="detail" style="color:var(--red)">${e.message}</div></div>`;
+  }
+}
+
+async function deployTo(targetId) {
+  const conv = document.getElementById('conversation');
+  conv.innerHTML += `<div class="message system"><div class="detail">Deploying to ${targetId}...</div></div>`;
+  scrollToBottom();
+  const resp = await fetch('/api/shell/deploy/run', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({target_id: targetId, version: '1.0.0'}) });
+  const data = await resp.json();
+  conv.innerHTML += `<div class="message system"><div class="header"><span>Deploy Result</span><span class="status ${data.error ? 'error' : 'complete'}">${data.error ? 'FAILED' : 'DEPLOYED'}</span></div><div class="detail">${data.error || `v${data.version} → ${data.target} (${data.deployment_id})`}</div></div>`;
+  scrollToBottom();
+}
+
+async function rollbackTo(targetId) {
+  const conv = document.getElementById('conversation');
+  conv.innerHTML += `<div class="message system"><div class="detail">Rolling back ${targetId}...</div></div>`;
+  scrollToBottom();
+  const resp = await fetch('/api/shell/deploy/rollback', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({target_id: targetId}) });
+  const data = await resp.json();
+  conv.innerHTML += `<div class="message system"><div class="header"><span>Rollback</span><span class="status ${data.error ? 'error' : 'complete'}">${data.error ? 'FAILED' : 'ROLLED BACK'}</span></div><div class="detail">${data.error || `Version: ${data.version}`}</div></div>`;
+  scrollToBottom();
+}
+
+async function registerTarget() {
+  const name = document.getElementById('new-target-name').value;
+  const env = document.getElementById('new-target-env').value || 'production';
+  if (!name) return;
+  const resp = await fetch('/api/shell/deploy/target', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({name, env}) });
+  await resp.json();
+  loadDeploymentCenter();
 }
 
 async function loadTimelineView() {
